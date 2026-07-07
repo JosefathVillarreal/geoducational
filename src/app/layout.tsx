@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Geoducational - Red de Nodos",
   description: "Conecta municipios, expande tu economía y descubre datos interesantes.",
   // 🔑 Bloquea gestos del navegador móvil para que el mapa se sienta como una app nativa
-  viewport: "width=device-device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
+  viewport: "width=device-device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=false",
 };
 
 export default function RootLayout({
