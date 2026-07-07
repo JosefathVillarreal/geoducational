@@ -160,7 +160,11 @@ export default function Home() {
       </div>
 
       {/* VENTANAS MODALES DINÁMICAS (Se destruyen solas por defecto si su ID es null) */}
-      <NodeModal nodeId={state.context.selectedNodeId} onClose={() => send({ type: 'CLOSE_PANEL' })} />
+     <NodeModal 
+        nodeId={state.context.selectedNodeId} 
+        onClose={() => send({ type: 'CLOSE_PANEL' })} 
+        onBuildBridgeInit={() => send({ type: 'INICIAR_CONEXION' })} // 👈 Activa el modo construcción de XState al presionar el botón de puente
+      />
       <RoadModal roadId={state.context.selectedRoadId} onClose={() => send({ type: 'CLOSE_PANEL' })} />
     </main>
   );
