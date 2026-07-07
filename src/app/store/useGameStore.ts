@@ -237,9 +237,9 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const proximasCiudades = Object.values(state.municipios).filter(m => !m.desbloqueado);
     const ciudadReferencia = proximasCiudades.length > 0 
       ? proximasCiudades.reduce((prev, curr) => prev.precioBase < curr.precioBase ? prev : curr)
-      : { precioBase: 500000000 }; // Fallback de $500M si ya conquistó todo
+      : { precioBase: 5000000000 }; // Fallback de $500M si ya conquistó todo
 
-    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 0.5);
+    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 0.9);
 
     // Muestreo de distractores usando nombres de otras ciudades del mapa mental
     const distractores = Object.values(state.municipios)
