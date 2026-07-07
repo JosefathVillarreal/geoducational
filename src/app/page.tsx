@@ -8,6 +8,7 @@ import { gameMachine } from './machines/gameMachine';
 import { useGameStore, calcularDistanciaKm, formatearDinero } from './store/useGameStore';
 import NodeModal from './components/NodeModal';
 import RoadModal from './components/RoadModal';
+import QuizCard from './components/QuizCard';
 import { Sun, Moon, ChevronDown, ChevronUp, Wallet, Map, Landmark, Globe } from 'lucide-react';
 
 const GameMap = dynamic(() => import('./components/GameMap'), {
@@ -196,6 +197,7 @@ export default function Home() {
 
       <NodeModal nodeId={state.context.selectedNodeId} onClose={() => send({ type: 'CLOSE_PANEL' })} onBuildBridgeInit={() => send({ type: 'INICIAR_CONEXION' })} />
       <RoadModal roadId={state.context.selectedRoadId} onClose={() => send({ type: 'CLOSE_PANEL' })} />
+      <QuizCard />
     </main>
   );
 }
