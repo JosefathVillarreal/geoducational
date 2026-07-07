@@ -15,17 +15,13 @@ interface GameMapProps {
 
 const POSICION_CENTRAL_NL: [number, number] = [25.6866, -100.3161];
 
-// 🧭 CONTROLADOR INTELIGENTE DE CÁMARA SATELITAL RESPONSIVA
 function ControladorCamaraEnfoque({ focus }: { focus: 'municipio' | 'estado' | 'pais' }) {
   const map = useMap();
-
   useEffect(() => {
-    // Escala de saltos de zoom tácticos según la jerarquía comercial
     if (focus === 'municipio') map.setView(POSICION_CENTRAL_NL, 11, { animate: true, duration: 1.2 });
     if (focus === 'estado') map.setView([25.5000, -99.9000], 8.5, { animate: true, duration: 1.2 });
     if (focus === 'pais') map.setView([23.6345, -102.5528], 5, { animate: true, duration: 1.5 });
   }, [focus, map]);
-
   return null;
 }
 
@@ -63,7 +59,7 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
         <IntercambiadorBloqueoMapa congelar={mapaDebeCongelarse} />
         <ControladorCamaraEnfoque focus={focus} />
 
-        {/* CARRETERAS CON ANIMACIÓN INVERSA ABSTRACTA DE COCHES */}
+        {/* CAPA DE PUENTES VIALES */}
         <Pane name="capa-puentes" style={{ zIndex: 450 }}>
           {conexiones.map((conexion) => {
             const origen = municipios[conexion.desde];
@@ -81,20 +77,21 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
                 <Polyline
                   positions={coordenadasIda}
                   pathOptions={{
-                    color: esSeleccionada ? '#f59e0b' : '#38bdf8',
+                    color: esSeleccionada ? '#f59e0b' : (tema === 'dark' ? '#38bdf8' : '#0284c7'),
                     weight: grosorLinea,
-                    className: 'vector-carretera carretera-ida-animada'
-                  } as any} // 👈 Añadimos 'as any' al cierre del objeto para que el compilador de Next.js lo acepte sin chistar
+                    // 🏎️ CONDICIONAL DE ANIMACIÓN: Solo se activa la clase animada si el puente está seleccionado
+                    className: `vector-carretera ${esSeleccionada ? 'carretera-ida-animada' : ''}`
+                  } as any}
                   eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); } }}
                 />
-
                 <Polyline
                   positions={coordenadasVuelta}
                   pathOptions={{
-                    color: esSeleccionada ? '#d97706' : '#0ea5e9',
+                    color: esSeleccionada ? '#d97706' : (tema === 'dark' ? '#0ea5e9' : '#0369a1'),
                     weight: grosorLinea,
-                    className: 'vector-carretera carretera-vuelta-animada'
-                  } as any} // 👈 Mismo ajuste aquí
+                    // 🏎️ CONDICIONAL DE ANIMACIÓN SENTIDO INVERSO
+                    className: `vector-carretera ${esSeleccionada ? 'carretera-vuelta-animada' : ''}`
+                  } as any}
                   eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); } }}
                 />
               </Fragment>
@@ -102,7 +99,7 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
           })}
         </Pane>
 
-        {/* Capa Z-Index Superior: Nodos Municipales */}
+        {/* CAPA DE NODOS MUNICIPALES */}
         <Pane name="capa-nodos" style={{ zIndex: 500 }}>
           {Object.values(municipios).map((municipio) => {
             const estaComprado = municipio.nivelActual > 0;
@@ -110,22 +107,21 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
             
             const radioProgreso = estaComprado ? 9 + (municipio.nivelActual * 2.5) : 8;
             
-            // 🎨 REGLAS CROMÁTICAS OPTIMIZADAS CON NUEVO ESTADO GRIS DE BLOQUEO INTERNO:
-            let colorBorde = '#475569'; // Gris oscuro sólido para bloqueados de fábrica
+            let colorBorde = '#475569'; 
             let colorRelleno = tema === 'dark' ? '#0f172a' : '#94a3b8';
 
             if (municipio.desbloqueado && !estaComprado) {
-              colorBorde = '#64748b'; // Gris claro disponible para compra
+              colorBorde = '#64748b'; 
               colorRelleno = tema === 'dark' ? '#1e293b' : '#cbd5e1';
             }
 
             if (municipio.desbloqueado && estaComprado) {
-              colorBorde = '#10b981'; // Adquirido (Verde)
+              colorBorde = '#10b981'; 
               colorRelleno = '#34d399';
             }
 
             if (esSeleccionado) {
-              colorBorde = '#f59e0b'; // Seleccionado Activo (Ámbar)
+              colorBorde = '#f59e0b'; 
               colorRelleno = '#fbbf24';
             }
 

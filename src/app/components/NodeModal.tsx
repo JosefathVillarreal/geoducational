@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGameStore } from '../store/useGameStore';
-import { X, TrendingUp, Lock, GitCommit, Users, BarChart3, HelpCircle } from 'lucide-react';
+import { useGameStore, formatearDinero } from '../store/useGameStore';
+import { X, TrendingUp, Lock, GitCommit, Users, BarChart3 } from 'lucide-react';
 
 interface NodeModalProps {
   nodeId: string | null;
@@ -21,7 +21,6 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
   const municipio = nodeId ? municipios[nodeId] : null;
   const [triviaIndex, setTriviaIndex] = useState(0);
 
-  // Controladores de tooltips de presupuesto insuficiente
   const [showUpgradeTooltip, setShowUpgradeTooltip] = useState(false);
   const [showBridgeTooltip, setShowBridgeTooltip] = useState(false);
 
@@ -43,12 +42,11 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
 
   const estaComprado = municipio.nivelActual > 0;
   
-  // Costos millonarios estructurados
   const costoUpgrade = estaComprado 
     ? Math.floor(municipio.precioBase * Math.pow(1.9, municipio.nivelActual))
     : municipio.precioBase;
 
-  const costoBasePuente = 500000000; // $500 Millones base federal
+  const costoBasePuente = 500000000; // $500M Base
 
   const puedePagarUpgrade = dinero >= costoUpgrade;
   const puedePagarPuente = dinero >= costoBasePuente;
@@ -79,7 +77,7 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
           <div>
             <h2 className="text-xl font-black tracking-tight">📍 {municipio.nombre}</h2>
             
-            {/* 📊 ACTUALIZACIÓN SOLICITADA: Población al lado de Nivel con iconos y números */}
+            {/* 📊 INDICADOR EXPLICITO SOLICITADO: Nivel actual al lado de población con icono y número */}
             <div className="flex items-center gap-3 mt-1 font-mono text-xs text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-0.5">
                 <Users size={12} /> {municipio.poblacion.toLocaleString('es-MX')}
@@ -91,43 +89,37 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
               )}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg transition">
-            <X size={16} />
-          </button>
+          <button onClick={onClose} className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-lg"><X size={16} /></button>
         </div>
 
         <div className="my-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 p-4 rounded-xl min-h-[85px] flex flex-col justify-between">
-          <span className="text-[9px] uppercase tracking-widest text-sky-600 dark:text-emerald-400 font-bold font-mono block">
-            📡 Satélite Geoducational • Trivia activa
-          </span>
+          <span className="text-[9px] uppercase tracking-widest text-sky-600 dark:text-emerald-400 font-bold font-mono block">📡 Satélite Activo</span>
           <p className="text-xs md:text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-sans mt-1.5 italic font-medium">
-            {municipio.desbloqueado ? municipio.datosCuriosos[triviaIndex] : "🔒 Territorio bloqueado por el Pacto de Coordinación Fiscal. Requiere un Token de Expansión Territorial para abrir operaciones."}
+            {municipio.desbloqueado ? municipio.datosCuriosos[triviaIndex] : "🔒 Territorio bloqueado. Requiere un Token de Expansión Territorial."}
           </p>
         </div>
 
         <div className="pt-2 flex flex-col gap-2.5 relative">
           
           {!municipio.desbloqueado ? (
-            /* 👑 MIGRACIÓN PROGRESIÓN: Desbloquear con tokens ganados en nivel 10 */
             <button
               disabled={tokensDesbloqueo <= 0}
               onClick={() => intentarDesbloquearNodo(municipio.id)}
               className={`w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition border ${
-                tokensDesbloqueo > 0
-                  ? 'bg-amber-500 hover:bg-amber-400 border-amber-600 text-slate-950 font-black'
-                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 cursor-not-allowed'
+                tokensDesbloqueo > 0 ? 'bg-amber-500 border-amber-600 text-slate-950 font-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent cursor-not-allowed'
               }`}
             >
-              <Lock size={14} /> Desbloquear con Token ({tokensDesbloqueo} disponibles)
+              <Lock size={14} /> Desbloquear con Token ({tokensDesbloqueo})
             </button>
           ) : estaComprado ? (
-            /* ENTORNO SPLIT ADQUIRIDO (Sin texto de precios) */
             <div className="grid grid-cols-2 gap-2 relative">
+              
+              {/* SUBIR NIVEL (Solo texto e icono, barra progresiva y tooltip) */}
               <div className="relative">
                 <AnimatePresence>
                   {showUpgradeTooltip && (
-                    <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-950 text-white font-mono text-[9px] py-1 px-2 rounded shadow-2xl border border-slate-800 z-50 whitespace-nowrap">
-                      💸 Faltan ${(costoUpgrade - dinero / 1000000).toFixed(0)}M MXN
+                    <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-950 text-white font-mono text-[9px] py-1 px-2 rounded border border-slate-800 z-50 whitespace-nowrap shadow-2xl">
+                      💸 Faltan {formatearDinero(costoUpgrade - dinero)}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -135,7 +127,7 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
                 <button
                   disabled={municipio.nivelActual >= 10}
                   onClick={() => { if (puedePagarUpgrade) subirNivelNodo(municipio.id); else dispararTooltipUpgrade(); }}
-                  className="relative w-full overflow-hidden py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition border border-slate-200 dark:border-slate-700"
+                  className="relative w-full overflow-hidden py-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition border border-slate-200 dark:border-slate-700 active:scale-95"
                 >
                   <motion.div className="absolute left-0 top-0 bottom-0 bg-emerald-500/20 pointer-events-none" initial={{ width: 0 }} animate={{ width: `${progresoUpgrade * 100}%` }} transition={{ type: 'spring' }} />
                   <TrendingUp size={14} className={puedePagarUpgrade ? "text-emerald-500" : "text-slate-500"} />
@@ -143,19 +135,20 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
                 </button>
               </div>
 
+              {/* PUENTE (Color ámbar igual al nodo, barra progresiva y tooltip) */}
               <div className="relative">
                 <AnimatePresence>
                   {showBridgeTooltip && (
-                    <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-950 text-white font-mono text-[9px] py-1 px-2 rounded shadow-2xl border border-slate-800 z-50 whitespace-nowrap">
-                      💸 Faltan $500M MXN base
+                    <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-950 text-white font-mono text-[9px] py-1 px-2 rounded border border-slate-800 z-50 whitespace-nowrap shadow-2xl">
+                      💸 Faltan {formatearDinero(costoBasePuente - dinero)}
                     </motion.div>
                   )}
                 </AnimatePresence>
 
                 <button
                   onClick={() => { if (puedePagarPuente) onBuildBridgeInit(); else dispararTooltipPuente(); }}
-                  className={`relative w-full overflow-hidden py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition border ${
-                    puedePagarPuente ? 'bg-amber-500 text-slate-950 border-amber-600 font-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent cursor-not-allowed'
+                  className={`relative w-full overflow-hidden py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition border active:scale-95 ${
+                    puedePagarPuente ? 'bg-amber-500 text-slate-950 border-amber-600 font-black shadow-lg shadow-amber-500/10' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent cursor-not-allowed'
                   }`}
                 >
                   {!puedePagarPuente && <motion.div className="absolute left-0 top-0 bottom-0 bg-amber-500/20 pointer-events-none" initial={{ width: 0 }} animate={{ width: `${progresoPuente * 100}%` }} transition={{ type: 'spring' }} />}
@@ -163,22 +156,23 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
                   <span className="relative z-10">Puente</span>
                 </button>
               </div>
+
             </div>
           ) : (
             /* ADQUIRIR CIUDAD DISPONIBLE */
             <div className="relative w-full">
               <AnimatePresence>
                 {showUpgradeTooltip && (
-                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-950 text-white font-mono text-[9px] py-1 px-2 rounded shadow-2xl border border-slate-800 z-50 whitespace-nowrap">
-                    💸 Faltan ${(costoUpgrade - dinero / 1000000).toFixed(0)}M MXN
+                  <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-950 text-white font-mono text-[9px] py-1 px-2 rounded border border-slate-800 z-50 whitespace-nowrap shadow-2xl">
+                    💸 Faltan {formatearDinero(costoUpgrade - dinero)}
                   </motion.div>
                 )}
               </AnimatePresence>
 
               <button
                 onClick={() => { if (puedePagarUpgrade) subirNivelNodo(municipio.id); else dispararTooltipUpgrade(); }}
-                className={`relative w-full overflow-hidden py-3.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition border ${
-                  puedePagarUpgrade ? 'bg-emerald-500 border-emerald-600 text-slate-950 font-black shadow-xl' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700'
+                className={`relative w-full overflow-hidden py-3.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition border active:scale-95 ${
+                  puedePagarUpgrade ? 'bg-emerald-500 border-emerald-600 text-slate-950 font-black shadow-xl' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {!puedePagarUpgrade && <motion.div className="absolute left-0 top-0 bottom-0 bg-emerald-500/20 pointer-events-none" initial={{ width: 0 }} animate={{ width: `${progresoUpgrade * 100}%` }} transition={{ type: 'spring' }} />}
