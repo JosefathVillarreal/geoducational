@@ -1,7 +1,8 @@
 'use client';
 
 import { Fragment, useEffect } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, useMap } from 'react-leaflet';
+// 1. 🔑 IMPORTANTE: Importamos 'Pane' desde react-leaflet para controlar el eje Z
+import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, useMap, Pane } from 'react-leaflet';
 import { useGameStore } from '../store/useGameStore';
 import L from 'leaflet';
 
@@ -15,26 +16,21 @@ interface GameMapProps {
 
 const POSICION_CENTRAL_NL: [number, number] = [25.6866, -100.3161];
 
-// Subcomponente interno para congelar/descongelar el mapa usando el hook de Leaflet
 function IntercambiadorBloqueoMapa({ congelar }: { congelar: boolean }) {
   const map = useMap();
-
   useEffect(() => {
     if (congelar) {
-      // 🔒 Bloquear interacciones de movimiento para poder seleccionar el segundo nodo sin fallas
       map.dragging.disable();
       map.touchZoom.disable();
       map.doubleClickZoom.disable();
       map.scrollWheelZoom.disable();
     } else {
-      // 🔓 Liberar mapa cuando el usuario deselecciona o termina la obra
       map.dragging.enable();
       map.touchZoom.enable();
       map.doubleClickZoom.enable();
       map.scrollWheelZoom.enable();
     }
   }, [congelar, map]);
-
   return null;
 }
 
@@ -72,7 +68,6 @@ export default function GameMap({
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 
-  // El mapa se congelará si hay un nodo seleccionado O si está el modo construcción encendido
   const mapaDebeCongelarse = selectedNodeId !== null || modoConstruccionActivo;
 
   return (
@@ -80,96 +75,106 @@ export default function GameMap({
       <MapContainer center={POSICION_CENTRAL_NL} zoom={11} minZoom={9} maxZoom={15} className="w-full h-full" zoomControl={false}>
         <TileLayer url={tileUrl} attribution="&copy; CARTO" />
 
-        {/* 🔑 INYECTOR DE BLOQUEO DE NAVEGACIÓN */}
         <IntercambiadorBloqueoMapa congelar={mapaDebeCongelarse} />
 
-        {/* LINEAS DE CONEXIÓN VIAL */}
-        {conexiones.map((conexion) => {
-          const origen = municipios[conexion.desde];
-          const destino = municipios[conexion.hasta];
-          if (!origen || !destino) return null;
+        {/* ====================================================================== */}
+        /* 📦 CAPA Z-INDEX INFERIOR: PUENTES Y CARRETERAS (zIndex: 450)           */
+        {/* ====================================================================== */}
+        <Pane name="capa-puentes" style={{ zIndex: 450 }}>
+          {conexiones.map((conexion) => {
+            const origen = municipios[conexion.desde];
+            const destino = municipios[conexion.hasta];
+            if (!origen || !destino) return null;
 
-          const grosorLinea = 2 + conexion.carriles * 1.5;
-          const esSeleccionada = selectedRoadId === conexion.id;
+            const grosorLinea = 2 + conexion.carriles * 1.5;
+            const esSeleccionada = selectedRoadId === conexion.id;
 
-          const coordenadasIda = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, 0.0016);
-          const coordenadasVuelta = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, -0.0016);
+            const coordenadasIda = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, 0.0016);
+            const coordenadasVuelta = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, -0.0016);
 
-          return (
-            <Fragment key={conexion.id}>
-              <Polyline
-                positions={coordenadasIda}
+            return (
+              <Fragment key={conexion.id}>
+                <Polyline
+                  positions={coordenadasIda}
+                  pathOptions={{
+                    pane: 'capa-puentes', // 👈 Vinculación estricta de panel SVG
+                    color: esSeleccionada ? '#10b981' : '#64748b',
+                    weight: grosorLinea,
+                    className: `vector-carretera ${esSeleccionada ? 'carretera-activa-ida' : ''}`
+                  }}
+                  eventHandlers={{
+                    click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); }
+                  }}
+                />
+                <Polyline
+                  positions={coordenadasVuelta}
+                  pathOptions={{
+                    pane: 'capa-puentes', // 👈 Vinculación estricta de panel SVG
+                    color: esSeleccionada ? '#059669' : '#475569',
+                    weight: grosorLinea,
+                    className: `vector-carretera ${esSeleccionada ? 'carretera-activa-vuelta' : ''}`
+                  }}
+                  eventHandlers={{
+                    click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); }
+                  }}
+                />
+              </Fragment>
+            );
+          })}
+        </Pane>
+
+        {/* ====================================================================== */}
+        /* 📦 CAPA Z-INDEX SUPERIOR: NODOS MUNICIPALES (zIndex: 500)              */
+        {/* ====================================================================== */}
+        <Pane name="capa-nodos" style={{ zIndex: 500 }}>
+          {Object.values(municipios).map((municipio) => {
+            const estaComprado = municipio.nivelActual > 0;
+            const esSeleccionado = selectedNodeId === municipio.id;
+            
+            const radioProgreso = estaComprado ? 9 + (municipio.nivelActual * 2.5) : 8;
+            
+            let colorBorde = '#64748b'; // Estado 1: Bloqueado
+            let colorRelleno = tema === 'dark' ? '#1e293b' : '#cbd5e1';
+
+            if (estaComprado) {
+              colorBorde = '#10b981'; // Estado 2: Adquirido (Verde)
+              colorRelleno = '#34d399';
+            }
+
+            if (esSeleccionado) {
+              colorBorde = '#f59e0b'; // Estado 3: Seleccionado (Ámbar)
+              colorRelleno = '#fbbf24';
+            }
+
+            return (
+              <CircleMarker
+                key={municipio.id}
+                center={municipio.coordenadas}
+                radius={radioProgreso}
                 pathOptions={{
-                  color: esSeleccionada ? '#10b981' : '#64748b',
-                  weight: grosorLinea,
-                  className: `vector-carretera ${esSeleccionada ? 'carretera-activa-ida' : ''}`
+                  pane: 'capa-nodos', // 👈 Obliga a renderizarse en el panel superior
+                  color: colorBorde,
+                  fillColor: colorRelleno,
+                  fillOpacity: esSeleccionado || estaComprado ? 0.95 : 0.6,
+                  weight: esSeleccionado ? 4 : (estaComprado ? 3 : 1.5),
                 }}
                 eventHandlers={{
-                  click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); }
+                  click: (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    onNodeClick(municipio.id);
+                  }
                 }}
-              />
-              <Polyline
-                positions={coordenadasVuelta}
-                pathOptions={{
-                  color: esSeleccionada ? '#059669' : '#475569',
-                  weight: grosorLinea,
-                  className: `vector-carretera ${esSeleccionada ? 'carretera-activa-vuelta' : ''}`
-                }}
-                eventHandlers={{
-                  click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); }
-                }}
-              />
-            </Fragment>
-          );
-        })}
+              >
+                <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
+                  <div className="p-0.5 font-sans font-bold text-xs">
+                    {municipio.nombre} {esSeleccionado ? '🔸' : (estaComprado ? '🟩' : '🔒')}
+                  </div>
+                </Tooltip>
+              </CircleMarker>
+            );
+          })}
+        </Pane>
 
-        {/* NODOS MUNICIPALES CON SISTEMA DE COLOR DE 3 ESTADOS */}
-        {Object.values(municipios).map((municipio) => {
-          const estaComprado = municipio.nivelActual > 0;
-          const esSeleccionado = selectedNodeId === municipio.id;
-          
-          const radioProgreso = estaComprado ? 9 + (municipio.nivelActual * 2.5) : 8;
-          
-          // 🎨 REGLAS CROMÁTICAS ESTRICTAS SOLICITADAS:
-          let colorBorde = '#64748b'; // Estado 1: Bloqueado (Gris Slate)
-          let colorRelleno = tema === 'dark' ? '#1e293b' : '#cbd5e1';
-
-          if (estaComprado) {
-            colorBorde = '#10b981'; // Estado 2: Adquirido (Verde Esmeralda)
-            colorRelleno = '#34d399';
-          }
-
-          if (esSeleccionado) {
-            colorBorde = '#f59e0b'; // Estado 3: Seleccionado (Ámbar Neón)
-            colorRelleno = '#fbbf24';
-          }
-
-          return (
-            <CircleMarker
-              key={municipio.id}
-              center={municipio.coordenadas}
-              radius={radioProgreso}
-              pathOptions={{
-                color: colorBorde,
-                fillColor: colorRelleno,
-                fillOpacity: esSeleccionado || estaComprado ? 0.95 : 0.6,
-                weight: esSeleccionado ? 4 : (estaComprado ? 3 : 1.5),
-              }}
-              eventHandlers={{
-                click: (e) => {
-                  L.DomEvent.stopPropagation(e);
-                  onNodeClick(municipio.id); // Triggers puros de React, cero window events
-                }
-              }}
-            >
-              <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-                <div className="p-0.5 font-sans font-bold text-xs">
-                  {municipio.nombre} {esSeleccionado ? '🔸' : (estaComprado ? '🟩' : '🔒')}
-                </div>
-              </Tooltip>
-            </CircleMarker>
-          );
-        })}
       </MapContainer>
     </div>
   );
