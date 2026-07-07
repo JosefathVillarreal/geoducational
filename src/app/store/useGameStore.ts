@@ -90,8 +90,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
   currentViewFocus: 'municipio',
    quizActivo: null,
   municipios: {
-    'nl_mty': { id: 'nl_mty', nombre: 'Monterrey', poblacion: 1142994, coordenadas: [25.6866, -100.3161], nivelActual: 1, precioBase: 400000000, datosCuriosos: ["🏛️ Sultana del Norte.", "⛰️ Cerro de la Silla.", "🏭 Capital industrial."], desbloqueado: true },
-    'nl_spgg': { id: 'nl_spgg', nombre: 'San Pedro Garza García', poblacion: 132169, coordenadas: [25.6575, -100.4017], nivelActual: 0, precioBase: 1200000000, datosCuriosos: ["💰 Mayor ingreso per cápita.", "🌲 Parque Chipinque.", "🏙️ Torre Obispado."], desbloqueado: true },
+    'nl_mty': { id: 'nl_mty', nombre: 'Monterrey', poblacion: 1142994, coordenadas: [25.6866, -100.3161], nivelActual: 1, precioBase: 400000000, datosCuriosos: ["🏛️ Sultana del Norte.", "⛰️ Cerro de la Silla.", "🏭 Capital industrial.", "🏙️ Torre Obispado."], desbloqueado: true },
+    'nl_spgg': { id: 'nl_spgg', nombre: 'San Pedro Garza García', poblacion: 132169, coordenadas: [25.6575, -100.4017], nivelActual: 0, precioBase: 1200000000, datosCuriosos: ["💰 Mayor ingreso per cápita.", "🌲 Parque Chipinque."], desbloqueado: true },
     'nl_gpe': { id: 'nl_gpe', nombre: 'Guadalupe', poblacion: 643143, coordenadas: [25.6798, -100.2596], nivelActual: 0, precioBase: 350000000, datosCuriosos: ["⚽ Sede Estadio BBVA.", "🦜 Río La Silla.", "🤠 Misión Tlaxcalteca."], desbloqueado: true },
     'nl_sn': { id: 'nl_sn', nombre: 'San Nicolás', poblacion: 412199, coordenadas: [25.7506, -100.2954], nivelActual: 0, precioBase: 500000000, datosCuriosos: ["🎓 Campus UANL.", "🐯 El Volcán.", "🥇 Desarrollo Humano."], desbloqueado: false },
     'nl_apo': { id: 'nl_apo', nombre: 'Apodaca', poblacion: 656464, coordenadas: [25.7809, -100.1887], nivelActual: 0, precioBase: 650000000, datosCuriosos: ["✈️ Aeropuertos internacionales.", "🔌 Manufactura eléctrica.", "🧀 Quesos y carnes."], desbloqueado: false },
