@@ -51,7 +51,7 @@ export default function Home() {
       Object.values(municipios).forEach((m) => {
         if (m.nivelActual > 0 && m.desbloqueado) {
           // Rendimiento base proporcional adaptado a la macroeconomía de millones
-          const rendimientoBase = m.precioBase * 0.009; 
+          const rendimientoBase = m.precioBase * 0.01; 
           
           // Factor de escala de ciudad (+10% acumulativo por nivel)
           const factorCiudad = 1 + 0.30 * (m.nivelActual - 1);
@@ -59,7 +59,7 @@ export default function Home() {
           // Factor de escala viales (+5% acumulativo por nivel de carriles en puentes que conectan a esta ciudad)
           const puentesConectados = conexiones.filter(c => c.desde === m.id || c.hasta === m.id);
           const sumaNivelesPuentes = puentesConectados.reduce((acc, c) => acc + c.carriles, 0);
-          const factorPuentes = 1 + 0.1 * sumaNivelesPuentes;
+          const factorPuentes = 1 + 0.2 * sumaNivelesPuentes;
 
           // Multiplicación compuesta final
           ingresosTotalesCiclo += rendimientoBase * factorCiudad * factorPuentes;
