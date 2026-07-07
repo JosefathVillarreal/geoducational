@@ -9,48 +9,34 @@ html, body, main {
   overflow: hidden;
 }
 
-/* ================= ANIMACIONES VECTORIALES DE TRÁFICO ================= */
+/* ================= 🏎️ SISTEMA ABSTRACTO DE TRÁFICO FLUIDO MÓVIL ================= */
 
-@keyframes traficoIda {
-  from { stroke-dashoffset: 20; }
+@keyframes flujoVehicularIda {
+  from { stroke-dashoffset: 40; }
   to { stroke-dashoffset: 0; }
 }
 
-@keyframes traficoVuelta {
+@keyframes flujoVehicularVuelta {
   from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: 20; }
+  to { stroke-dashoffset: 40; }
 }
 
-/* Estado base estático de las carreteras construidas */
+/* La línea punteada siempre estará activa imitando carros pasando */
 .vector-carretera {
-  stroke-dasharray: 6, 4;
-  opacity: 0.6;
-  transition: opacity 0.3s ease, stroke 0.3s ease;
+  stroke-dasharray: 8, 12; /* Crea puntos espaciados simulando carros distantes */
+  stroke-linecap: round;
 }
 
-/* Flujo vehicular activo en un sentido al ser seleccionada */
-.carretera-activa-ida {
-  opacity: 1 !important;
-  animation: traficoIda 0.6s linear infinite !important;
+/* Carriles de ida flotantes */
+.carretera-ida-animada {
+  animation: flujoVehicularIda 1.4s linear infinite;
 }
 
-/* Flujo vehicular activo en sentido contrario para doble vía */
-.carretera-activa-vuelta {
-  opacity: 1 !important;
-  animation: traficoVuelta 0.6s linear infinite !important;
+/* Carriles de vuelta en sentido opuesto */
+.carretera-vuelta-animada {
+  animation: flujoVehicularVuelta 1.4s linear infinite;
 }
 
-/* Ajustes de contenedores Leaflet basados en Temas (Compatibilidad Nativa v4) */
-.dark .leaflet-popup-content-wrapper {
-  background: #0f172a !important;
-  color: #ffffff !important;
-  border: 1px solid #334155 !important;
-}
-
-.leaflet-popup-content-wrapper {
-  background: #ffffff !important;
-  color: #0f172a !important;
-  border: 1px solid #e2e8f0 !important;
-  font-family: sans-serif;
-  border-radius: 0.75rem !important;
-}
+/* Ajustes de Leaflet */
+.dark .leaflet-popup-content-wrapper { background: #0f172a !important; color: #white !important; border: 1px solid #334155 !important; }
+.leaflet-popup-content-wrapper { background: #ffffff !important; color: #0f172a !important; border: 1px solid #e2e8f0 !important; border-radius: 0.75rem !important; }
