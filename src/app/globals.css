@@ -38,5 +38,15 @@ html, body, main {
 }
 
 /* Ajustes de Leaflet */
-.dark .leaflet-popup-content-wrapper { background: #0f172a !important; color: #white !important; border: 1px solid #334155 !important; }
-.leaflet-popup-content-wrapper { background: #ffffff !important; color: #0f172a !important; border: 1px solid #e2e8f0 !important; border-radius: 0.75rem !important; }
+.dark .leaflet-popup-content-wrapper { 
+  background: #0f172a !important; 
+  color: white !important; /* 🔑 Corregido: Quitamos el '#' que rompía el compilador */
+  border: 1px solid #334155 !important; 
+}
+
+.leaflet-popup-content-wrapper { 
+  background: #ffffff !important; 
+  color: #0f172a !important; 
+  border: 1px solid #e2e8f0 !important; 
+  border-radius: 0.75rem !important; 
+}

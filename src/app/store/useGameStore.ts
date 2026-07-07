@@ -130,11 +130,18 @@ export const useGameStore = create<GameState>()((set, get) => ({
     if (!origen || !destino || !origen.desbloqueado || !destino.desbloqueado) return;
 
     const dist = calcularDistanciaKm(origen.coordenadas, destino.coordenadas);
-    const costoCarretera = Math.floor((300 + (dist * 75)) * 1000000); // Escala de millones real
+    const costoCarretera = Math.floor((300 + (dist * 75)) * 1000000); // Escala en Millones
 
     if (state.dinero < costoCarretera) return;
 
-    const nuevaConexion = { id: `${desdeId}-${hastaId}`, desde: desdeId, hasta: hastaId, carriles: 1 };
+    // 🔑 CORRECCIÓN: Forzamos el tipado ': Conexion' y añadimos 'costoConstruccion'
+    const nuevaConexion: Conexion = { 
+      id: `${desdeId}-${hastaId}`, 
+      desde: desdeId, 
+      hasta: hastaId, 
+      carriles: 1,
+      costoConstruccion: costoCarretera // 👈 ¡Esto era lo que faltaba para cumplir el contrato!
+    };
     
     set((state) => ({
       dinero: state.dinero - costoCarretera,

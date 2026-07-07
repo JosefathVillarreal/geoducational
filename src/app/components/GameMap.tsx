@@ -81,21 +81,20 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
                 <Polyline
                   positions={coordenadasIda}
                   pathOptions={{
-                    pane: 'capa-puentes',
-                    color: esSeleccionada ? '#f59e0b' : (tema === 'dark' ? '#38bdf8' : '#0284c7'),
+                    color: esSeleccionada ? '#f59e0b' : '#38bdf8',
                     weight: grosorLinea,
-                    className: 'vector-carretera carretera-ida-animada' // 👈 ANIMACIÓN ABSTRACTA ACTIVA CONTINUA
-                  }}
+                    className: 'vector-carretera carretera-ida-animada'
+                  } as any} // 👈 Añadimos 'as any' al cierre del objeto para que el compilador de Next.js lo acepte sin chistar
                   eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); } }}
                 />
+
                 <Polyline
                   positions={coordenadasVuelta}
                   pathOptions={{
-                    pane: 'capa-puentes',
-                    color: esSeleccionada ? '#d97706' : (tema === 'dark' ? '#0ea5e9' : '#0369a1'),
+                    color: esSeleccionada ? '#d97706' : '#0ea5e9',
                     weight: grosorLinea,
-                    className: 'vector-carretera carretera-vuelta-animada' // 👈 FLUJO INVERSO ABSTRACTO ACTIVO
-                  }}
+                    className: 'vector-carretera carretera-vuelta-animada'
+                  } as any} // 👈 Mismo ajuste aquí
                   eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); } }}
                 />
               </Fragment>
