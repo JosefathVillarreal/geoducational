@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+// Actualiza la sección de metadata en src/app/layout.tsx para que luzca así:
 export const metadata: Metadata = {
   title: "Geoducational - Red de Nodos",
   description: "Conecta municipios, expande tu economía y descubre datos interesantes.",
+  // 🔑 Bloquea gestos del navegador móvil para que el mapa se sienta como una app nativa
+  viewport: "width=device-device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
 };
 
 export default function RootLayout({
