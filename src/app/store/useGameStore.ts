@@ -239,7 +239,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       ? proximasCiudades.reduce((prev, curr) => prev.precioBase < curr.precioBase ? prev : curr)
       : { precioBase: 50000000000 }; // Fallback de $500M si ya conquistó todo
 
-    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 1.9);
+    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 2.9);
 
     // Muestreo de distractores usando nombres de otras ciudades del mapa mental
     const distractores = Object.values(state.municipios)
