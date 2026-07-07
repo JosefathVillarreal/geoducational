@@ -138,11 +138,13 @@ export default function Home() {
           send({ type: 'CLOSE_PANEL' });
         }
       }}>
-        <GameMap 
-          selectedRoadId={state.context.selectedRoadId}
-          onNodeClick={(id) => handleNodeClickOnMap(id)}
-          onRoadClick={(id) => send({ type: 'SELECT_ROAD', id })}
-        />
+       
+      <GameMap 
+        selectedRoadId={state.context.selectedRoadId}
+        onNodeClick={(id) => handleNodeClickOnMap(id)}
+        onRoadClick={(id) => send({ type: 'SELECT_ROAD', id })}
+        modoConstruccionActivo={state.matches('modoConstruccion')} // 👈 Nueva propiedad reactiva inyectada
+      />
       </div>
 
       {/* VENTANAS MODALES */}

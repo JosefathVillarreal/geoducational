@@ -1,8 +1,7 @@
 'use client';
 
-// 1. 🔑 IMPORTANTE: Importamos Fragment desde React aquí arriba
-import { Fragment } from 'react'; 
-import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip } from 'react-leaflet';
+import { Fragment, useState, useEffect } from 'react';
+import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, useMap } from 'react-leaflet';
 import { useGameStore } from '../store/useGameStore';
 import L from 'leaflet';
 
@@ -10,10 +9,12 @@ interface GameMapProps {
   selectedRoadId: string | null;
   onNodeClick: (id: string) => void;
   onRoadClick: (id: string) => void;
+  modoConstruccionActivo: boolean;
 }
 
 const POSICION_CENTRAL_NL: [number, number] = [25.6866, -100.3161];
 
+// Función para calcular el desfase de las autopistas dobles paralelas
 function calcularCoordenadasParalelas(
   p1: [number, number],
   p2: [number, number],
@@ -21,37 +22,138 @@ function calcularCoordenadasParalelas(
 ): [[number, number], [number, number]] {
   const [lat1, lon1] = p1;
   const [lat2, lon2] = p2;
-
   const dLat = lat2 - lat1;
   const dLon = lon2 - lon1;
-
   const longitud = Math.sqrt(dLat * dLat + dLon * dLon);
   if (longitud === 0) return [p1, p2];
-
   const perpLat = -dLon / longitud;
   const perpLon = dLat / longitud;
-
   return [
     [lat1 + perpLat * desfase, lon1 + perpLon * desfase],
-    [lat2 + perpLon * desfase, lon2 + perpLat * desfase] // Corregido orden de proyección simétrica
+    [lat2 + perpLat * desfase, lon2 + perpLon * desfase]
   ];
 }
 
-export default function GameMap({ selectedRoadId, onNodeClick, onRoadClick }: GameMapProps) {
+// 🌐 SUB-COMPONENTE TÁCTICO: Captura gestos de arrastre del dedo sobre el canvas
+function ControladorGestoTactil({ 
+  onDragUpdate, 
+  onDragEnd,
+  nodoOrigenId 
+}: { 
+  onDragUpdate: (latlng: [number, number] | null) => void;
+  onDragEnd: (latlng: [number, number]) => void;
+  nodoOrigenId: string | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!nodoOrigenId) return;
+
+    // ⛔ Congelar el paneo del mapa para que el dedo dibuje el puente y no mueva la pantalla
+    map.dragging.disable();
+    map.touchZoom.disable();
+
+    const handlePointerMove = (e: PointerEvent) => {
+      // Convertir píxeles de la pantalla del celular a coordenadas satelitales (Lat, Lon)
+      const puntoContenedor = map.mouseEventToContainerPoint(e);
+      const latlng = map.containerPointToLatLng(puntoContenedor);
+      onDragUpdate([latlng.lat, latlng.lng]);
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      const puntoContenedor = map.mouseEventToContainerPoint(e);
+      const latlng = map.containerPointToLatLng(puntoContenedor);
+      
+      // Restaurar controles de navegación del mapa inmediatamente
+      map.dragging.enable();
+      map.touchZoom.enable();
+      
+      onDragEnd([latlng.lat, latlng.lng]);
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+    };
+
+    document.addEventListener('pointermove', handlePointerMove);
+    document.addEventListener('pointerup', handlePointerUp);
+
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerup', handlePointerUp);
+      map.dragging.enable();
+      map.touchZoom.enable();
+    };
+  }, [nodoOrigenId, map, onDragUpdate, onDragEnd]);
+
+  return null;
+}
+
+export default function GameMap({ selectedRoadId, onNodeClick, onRoadClick, modoConstruccionActivo }: GameMapProps) {
   const municipios = useGameStore((state) => state.municipios);
   const conexiones = useGameStore((state) => state.conexiones);
   const tema = useGameStore((state) => state.tema);
+  const intentarConectarNodos = useGameStore((state) => state.intentarConectarNodos);
+
+  // Estados locales para controlar el puente dinámico que sigue al dedo
+  const [nodoOrigenArrastre, setNodoOrigenArrastre] = useState<string | null>(null);
+  const [coordenadasDedo, setCoordenadasDedo] = useState<[number, number] | null>(null);
 
   const tileUrl = tema === 'dark'
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
     : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+  // Procesar el término del arrastre táctil
+  const evaluarLiberacionDedo = (latlngFinal: [number, number]) => {
+    if (!nodoOrigenArrastre) return;
+
+    // Buscar si el dedo se soltó encima de algún municipio disponible (umbral de colisión de 3.5 km)
+    const radioColisionGrados = 0.025; 
+    const municipioDestino = Object.values(municipios).find((m) => {
+      if (m.id === nodoOrigenArrastre) return false;
+      const difLat = Math.abs(m.coordenadas[0] - latlngFinal[0]);
+      const difLon = Math.abs(m.coordenadas[1] - latlngFinal[1]);
+      return difLat < radioColisionGrados && difLon < radioColisionGrados;
+    });
+
+    if (municipioDestino) {
+      const transaccion = intentarConectarNodos(nodoOrigenArrastre, municipioDestino.id);
+      if (!transaccion.exito) {
+        alert(transaccion.mensaje);
+      }
+    }
+
+    // Resetear hilos de previsualización
+    setNodoOrigenArrastre(null);
+    setCoordenadasDedo(null);
+  };
 
   return (
     <div className="w-full h-full relative z-0">
       <MapContainer center={POSICION_CENTRAL_NL} zoom={11} minZoom={9} maxZoom={15} className="w-full h-full" zoomControl={false}>
         <TileLayer url={tileUrl} attribution="&copy; CARTO" />
 
-        {/* ================= CARRETERAS DOBLE VÍA CON PARALELISMO VECTORIAL ================= */}
+        {/* 🛠️ ACTIVADOR GESTUAL: Solo se enciende si el usuario inició el arrastre */}
+        {nodoOrigenArrastre && (
+          <ControladorGestoTactil 
+            nodoOrigenId={nodoOrigenArrastre} 
+            onDragUpdate={setCoordenadasDedo} 
+            onDragEnd={evaluarLiberacionDedo} 
+          />
+        )}
+
+        {/* 🏎️ VECTOR PROTOTIPO SEGUIDOR DE DEDO (Puente en Construcción Activo) */}
+        {nodoOrigenArrastre && coordenadasDedo && municipios[nodoOrigenArrastre] && (
+          <Polyline
+            positions={[municipios[nodoOrigenArrastre]!.coordenadas, coordenadasDedo]}
+            pathOptions={{
+              color: '#f59e0b', // Amber 500 Táctico de Obras Públicas
+              weight: 4,
+              dashArray: '8, 8',
+              className: 'animate-pulse'
+            }}
+          />
+        )}
+
+        {/* ================= CARRETERAS DOBLE VÍA INSTALADAS ================= */}
         {conexiones.map((conexion) => {
           const origen = municipios[conexion.desde];
           const destino = municipios[conexion.hasta];
@@ -60,13 +162,11 @@ export default function GameMap({ selectedRoadId, onNodeClick, onRoadClick }: Ga
           const grosorLinea = 2 + conexion.carriles * 1.5;
           const esSeleccionada = selectedRoadId === conexion.id;
 
-          const coordenadasIda = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, 0.0018);
-          const coordenadasVuelta = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, -0.0018);
+          const coordenadasIda = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, 0.0016);
+          const coordenadasVuelta = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, -0.0016);
 
           return (
-            // 2. 🎯 CORRECCIÓN: Reemplazamos <g> por <Fragment> para agrupar sin ensuciar el mapa
             <Fragment key={conexion.id}>
-              {/* Sentido de Ida (Tráfico hacia adelante) */}
               <Polyline
                 positions={coordenadasIda}
                 pathOptions={{
@@ -75,13 +175,9 @@ export default function GameMap({ selectedRoadId, onNodeClick, onRoadClick }: Ga
                   className: `vector-carretera ${esSeleccionada ? 'carretera-activa-ida' : ''}`
                 }}
                 eventHandlers={{
-                  click: (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    onRoadClick(conexion.id);
-                  }
+                  click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); }
                 }}
               />
-              {/* Sentido de Vuelta (Tráfico inverso coordinado) */}
               <Polyline
                 positions={coordenadasVuelta}
                 pathOptions={{
@@ -90,17 +186,14 @@ export default function GameMap({ selectedRoadId, onNodeClick, onRoadClick }: Ga
                   className: `vector-carretera ${esSeleccionada ? 'carretera-activa-vuelta' : ''}`
                 }}
                 eventHandlers={{
-                  click: (e) => {
-                    L.DomEvent.stopPropagation(e);
-                    onRoadClick(conexion.id);
-                  }
+                  click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); }
                 }}
               />
             </Fragment>
           );
         })}
 
-        {/* ================= NODOS MUNICIPALES ================= */}
+        {/* ================= NODOS MUNICIPALES CON CAPTURA POINTER DOWN ================= */}
         {Object.values(municipios).map((municipio) => {
           const estaComprado = municipio.nivelActual > 0;
           const radioProgreso = estaComprado ? 9 + (municipio.nivelActual * 2.5) : 8;
@@ -120,10 +213,18 @@ export default function GameMap({ selectedRoadId, onNodeClick, onRoadClick }: Ga
                 weight: estaComprado ? 3 : 1.5,
               }}
               eventHandlers={{
+                // Click estándar para computadoras o toques rápidos
                 click: (e) => {
                   L.DomEvent.stopPropagation(e);
                   onNodeClick(municipio.id);
                 },
+                // 📱 GESTO PARA CELULAR: Al poner el dedo encima, se abre el trazador automático si ya está comprado
+                mousedown: (e) => {
+                  if (estaComprado) {
+                    L.DomEvent.stopPropagation(e);
+                    setNodoOrigenArrastre(municipio.id);
+                  }
+                }
               }}
             >
               <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>

@@ -19,37 +19,39 @@ export default function RoadModal({ roadId, onClose }: RoadModalProps) {
   const origen = carretera ? municipios[carretera.desde] : null;
   const destino = carretera ? municipios[carretera.hasta] : null;
 
-  if (!carretera || !origen || !destino) return null;
+  if (!carretera || !origen || !destino) return null; // 🔐 Ocultamiento automático si no hay selección
 
-  const costoMejora = carretera.carriles * 300;
+  const costoMejora = carretera.carriles * 250;
   const puedePagar = dinero >= costoMejora;
 
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
+        initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 50 }}
-        className="absolute bottom-6 right-6 z-[1000] w-96 bg-slate-900/95 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-2xl text-white"
+        exit={{ opacity: 0, y: 150 }}
+        className="fixed bottom-0 left-0 right-0 md:absolute md:top-auto md:bottom-6 md:left-auto md:right-6 z-[1050] w-full md:w-96 bg-white dark:bg-slate-900 border-t md:border border-slate-200 dark:border-slate-800 p-6 rounded-t-3xl md:rounded-2xl shadow-2xl text-slate-900 dark:text-white pb-8 md:pb-6 transition-colors duration-300"
       >
-        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div className="w-12 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-4 md:hidden" onClick={onClose} />
+
+        <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-widest text-sky-400 font-mono">Eje Vial Federal</h2>
-            <p className="text-md font-black">{origen.nombre} ⇄ {destino.nombre}</p>
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-sky-600 dark:text-sky-400 font-mono">Infraestructura Vial</h2>
+            <p className="text-base font-black">{origen.nombre} ⇄ {destino.nombre}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 bg-slate-800 text-slate-400 hover:text-white rounded-lg">
+          <button onClick={onClose} className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-white rounded-lg">
             <X size={16} />
           </button>
         </div>
 
-        <div className="my-4 grid grid-cols-2 gap-2 text-center bg-slate-950 p-3 rounded-xl border border-slate-800">
+        <div className="my-4 grid grid-cols-2 gap-2 text-center bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
           <div>
-            <span className="text-[10px] text-slate-500 font-mono block">CAPACIDAD ACTUAL</span>
-            <span className="text-lg font-bold text-white font-mono">{carretera.carriles} Carriles</span>
+            <span className="text-[9px] text-slate-400 font-mono block uppercase">Sección Transversal</span>
+            <span className="text-base font-bold text-slate-800 dark:text-white font-mono">{carretera.carriles} Carriles</span>
           </div>
           <div>
-            <span className="text-[10px] text-slate-500 font-mono block">TIPO DE VECTOR</span>
-            <span className="text-xs font-bold text-emerald-400 mt-1 block uppercase">Doble Vía (Ida/Vuelta)</span>
+            <span className="text-[9px] text-slate-400 font-mono block uppercase">Inversión Inicial</span>
+            <span className="text-base font-bold text-emerald-500 font-mono">${carretera.costoConstruccion}</span>
           </div>
         </div>
 
@@ -58,17 +60,17 @@ export default function RoadModal({ roadId, onClose }: RoadModalProps) {
           onClick={() => mejorarCarretera(carretera.id)}
           className={`w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition ${
             carretera.carriles >= 6
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+              ? 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed'
               : puedePagar
-              ? 'bg-sky-500 hover:bg-sky-400 text-slate-950 font-black'
-              : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+              ? 'bg-sky-500 hover:bg-sky-400 text-white dark:text-slate-950 font-black shadow-lg active:scale-95'
+              : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 cursor-not-allowed'
           }`}
         >
           {carretera.carriles >= 6 ? (
-            'Capacidad de Autopista Máxima (6 Carriles)'
+            '🚀 Eje Vial a Capacidad Máxima (6 Carriles)'
           ) : (
             <>
-              <Hammer size={14} /> Ampliar a {carretera.carriles + 1} Carriles por ${costoMejora}
+              <Hammer size={14} /> Ampliar Autopista por ${costoMejora}
             </>
           )}
         </button>
