@@ -1,7 +1,8 @@
+// src/app/components/GameMap.tsx
 'use client';
 
 import { Fragment, useEffect } from 'react';
-import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, useMap, Pane } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Polyline, Tooltip, useMap } from 'react-leaflet';
 import { useGameStore } from '../store/useGameStore';
 import L from 'leaflet';
 
@@ -59,59 +60,68 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
         <IntercambiadorBloqueoMapa congelar={mapaDebeCongelarse} />
         <ControladorCamaraEnfoque focus={focus} />
 
-        {/* CAPA DE PUENTES VIALES */}
-        <Pane name="capa-puentes" style={{ zIndex: 450 }}>
-          {conexiones.map((conexion) => {
-            const origen = municipios[conexion.desde];
-            const destino = municipios[conexion.hasta];
-            if (!origen || !destino) return null;
+        {/* 🛣️ CAPA 1: DIBUJAMOS PRIMERO LAS CARRETERAS (Se renderizan al fondo del lienzo SVG) */}
+        {conexiones.map((conexion) => {
+          const origen = municipios[conexion.desde];
+          const destino = municipios[conexion.hasta];
+          if (!origen || !destino) return null;
 
-            const grosorLinea = 2.5 + conexion.carriles * 1.5;
-            const esSeleccionada = selectedRoadId === conexion.id;
+          const grosorLinea = 2.5 + conexion.carriles * 1.5;
+          const esSeleccionada = selectedRoadId === conexion.id;
 
-            const coordenadasIda = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, 0.0016);
-            const coordenadasVuelta = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, -0.0016);
+          const coordenadasIda = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, 0.0016);
+          const coordenadasVuelta = calcularCoordenadasParalelas(origen.coordenadas, destino.coordenadas, -0.0016);
 
-            return (
-              <Fragment key={conexion.id}>
-                <Polyline
-                  positions={coordenadasIda}
-                  pathOptions={{
-                    color: esSeleccionada ? '#f59e0b' : (tema === 'dark' ? '#38bdf8' : '#0284c7'),
-                    weight: grosorLinea,
-                    className: `vector-carretera ${esSeleccionada ? 'carretera-ida-animada' : ''}`
-                  } as any}
-                  eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); } }}
-                />
-                <Polyline
-                  positions={coordenadasVuelta}
-                  pathOptions={{
-                    color: esSeleccionada ? '#d97706' : (tema === 'dark' ? '#0ea5e9' : '#0369a1'),
-                    weight: grosorLinea,
-                    className: `vector-carretera ${esSeleccionada ? 'carretera-vuelta-animada' : ''}`
-                  } as any}
-                  eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); } }}
-                />
-              </Fragment>
-            );
-          })}
-        </Pane>
+          return (
+            <Fragment key={conexion.id}>
+              <Polyline
+                positions={coordenadasIda}
+                pathOptions={{
+                  color: esSeleccionada ? '#f59e0b' : (tema === 'dark' ? '#38bdf8' : '#0284c7'),
+                  weight: grosorLinea,
+                  className: `vector-carretera ${esSeleccionada ? 'carretera-ida-animada' : ''}`
+                } as any}
+                eventHandlers={{ 
+                  click: (e) => { 
+                    L.DomEvent.stopPropagation(e.originalEvent); // Corrección: Detener propagación nativa real
+                    onRoadClick(conexion.id); 
+                  } 
+                }}
+              />
+              <Polyline
+                positions={coordenadasVuelta}
+                pathOptions={{
+                  color: esSeleccionada ? '#d97706' : (tema === 'dark' ? '#0ea5e9' : '#0369a1'),
+                  weight: grosorLinea,
+                  className: `vector-carretera ${esSeleccionada ? 'carretera-vuelta-animada' : ''}`
+                } as any}
+                eventHandlers={{ 
+                  click: (e) => { 
+                    L.DomEvent.stopPropagation(e.originalEvent); 
+                    onRoadClick(conexion.id); 
+                  } 
+                }}
+              />
+            </Fragment>
+          );
+        })}
 
-      {/* CAPA DE NODOS MUNICIPALES */}
-      <Pane name="capa-nodos" style={{ zIndex: 500 }}>
+        {/* 🗺️ CAPA 2: DIBUJAMOS LOS NODOS MUNICIPALES DESPUÉS (Se superponen de forma perfecta sobre las líneas) */}
         {Object.values(municipios).map((municipio) => {
           const estaComprado = municipio.nivelActual > 0;
           const esSeleccionado = selectedNodeId === municipio.id;
           
-          const radioProgreso = estaComprado ? 9 + (municipio.nivelActual * 2.5) : 11; // 11px base para que se vean grandes
+          // Radio base sólido para asegurar una excelente zona de impacto táctil
+          const radioProgreso = estaComprado ? 10 + (municipio.nivelActual * 2.5) : 11;
           
-          let colorBorde = tema === 'dark' ? '#64748b' : '#94a3b8'; 
-          let colorRelleno = tema === 'dark' ? '#334155' : '#cbd5e1';
-          let opacidadRelleno = 0.85; // Opacidad alta para asegurar visibilidad absoluta
+          // Colores de alta presencia para romper definitivamente el camuflaje oscuro
+          let colorBorde = tema === 'dark' ? '#94a3b8' : '#64748b'; 
+          let colorRelleno = tema === 'dark' ? '#475569' : '#cbd5e1';
+          let opacidadRelleno = 0.85;
 
           if (municipio.desbloqueado && !estaComprado) {
             colorBorde = '#a1a1aa'; 
-            colorRelleno = tema === 'dark' ? '#27272a' : '#f4f4f5';
+            colorRelleno = tema === 'dark' ? '#3f3f46' : '#f4f4f5';
             opacidadRelleno = 0.9;
           }
 
@@ -132,8 +142,6 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
               key={municipio.id}
               center={municipio.coordenadas}
               radius={radioProgreso}
-              // ⚡ CORRECCIÓN CRÍTICA: 'pane' se pasa como una PROP DIRECTA de react-leaflet, NO dentro de pathOptions
-              pane="capa-nodos" 
               pathOptions={{
                 color: colorBorde,
                 fillColor: colorRelleno,
@@ -142,7 +150,10 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
                 dashArray: !municipio.desbloqueado ? '4, 4' : undefined 
               }}
               eventHandlers={{
-                click: (e) => { L.DomEvent.stopPropagation(e); onNodeClick(municipio.id); }
+                click: (e) => { 
+                  L.DomEvent.stopPropagation(e.originalEvent); // Corrección: Detener propagación nativa real
+                  onNodeClick(municipio.id); 
+                }
               }}
             >
               <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
@@ -153,7 +164,6 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
             </CircleMarker>
           );
         })}
-      </Pane>
       </MapContainer>
     </div>
   );
