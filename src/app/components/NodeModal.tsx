@@ -13,7 +13,7 @@ interface NodeModalProps {
 
 export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeModalProps) {
   const dinero = useGameStore((state) => state.dinero);
-  const tokensDesbloqueo = useGameStore((state) => state.tokensDesbloqueo);
+  const llavesDeLaCiudad = useGameStore((state) => state.llavesDeLaCiudad);
   const municipios = useGameStore((state) => state.municipios);
   const subirNivelNodo = useGameStore((state) => state.subirNivelNodo);
   const intentarDesbloquearNodo = useGameStore((state) => state.intentarDesbloquearNodo);
@@ -102,13 +102,13 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
           
           {!municipio.desbloqueado ? (
             <button
-              disabled={tokensDesbloqueo <= 0}
+              disabled={llavesDeLaCiudad <= 0}
               onClick={() => intentarDesbloquearNodo(municipio.id)}
               className={`w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition border ${
-                tokensDesbloqueo > 0 ? 'bg-amber-500 border-amber-600 text-slate-950 font-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent cursor-not-allowed'
+                llavesDeLaCiudad > 0 ? 'bg-amber-500 border-amber-600 text-slate-950 font-black' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent cursor-not-allowed'
               }`}
             >
-              <Lock size={14} /> Desbloquear con Token ({tokensDesbloqueo})
+              <Lock size={14} /> Desbloquear con Token ({llavesDeLaCiudad})
             </button>
           ) : estaComprado ? (
             <div className="grid grid-cols-2 gap-2 relative">
