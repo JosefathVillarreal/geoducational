@@ -97,35 +97,30 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
           })}
         </Pane>
 
-       {/* CAPA DE NODOS MUNICIPALES */}
+      {/* CAPA DE NODOS MUNICIPALES */}
       <Pane name="capa-nodos" style={{ zIndex: 500 }}>
         {Object.values(municipios).map((municipio) => {
           const estaComprado = municipio.nivelActual > 0;
           const esSeleccionado = selectedNodeId === municipio.id;
           
-          // 📐 OPTIMIZACIÓN DE TAMAÑO: Aumentamos el radio base (de 8 a 11) para que sean perfectamente visibles y fáciles de presionar en móviles
-          const radioProgreso = estaComprado ? 10 + (municipio.nivelActual * 2.5) : 11;
+          const radioProgreso = estaComprado ? 9 + (municipio.nivelActual * 2.5) : 11; // 11px base para que se vean grandes
           
-          // 🎨 CORRECCIÓN DE CONTRASTE: Colores sólidos tipo "Ranura de Expansión" para romper el camuflaje
-          let colorBorde = tema === 'dark' ? '#64748b' : '#94a3b8'; // Gris Slate 500
-          let colorRelleno = tema === 'dark' ? '#475569' : '#cbd5e1'; // Gris Slate 600 sólido
-          let opacidadRelleno = 0.85; // 🔥 ANTES: 0.35 (provocaba que se transparentara con el fondo)
+          let colorBorde = tema === 'dark' ? '#64748b' : '#94a3b8'; 
+          let colorRelleno = tema === 'dark' ? '#334155' : '#cbd5e1';
+          let opacidadRelleno = 0.85; // Opacidad alta para asegurar visibilidad absoluta
 
-          // Nodo disponible para comprar con Llaves pero nivel 0 (Glow zinc)
           if (municipio.desbloqueado && !estaComprado) {
             colorBorde = '#a1a1aa'; 
-            colorRelleno = tema === 'dark' ? '#3f3f46' : '#f4f4f5';
+            colorRelleno = tema === 'dark' ? '#27272a' : '#f4f4f5';
             opacidadRelleno = 0.9;
           }
 
-          // Nodo comprado y generando ingresos activos (Esmeralda brillante)
           if (municipio.desbloqueado && estaComprado) {
             colorBorde = '#10b981'; 
             colorRelleno = '#34d399';
             opacidadRelleno = 0.95;
           }
 
-          // Nodo actualmente seleccionado por el jugador (Ámbar juego)
           if (esSeleccionado) {
             colorBorde = '#f59e0b'; 
             colorRelleno = '#fbbf24';
@@ -137,13 +132,13 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
               key={municipio.id}
               center={municipio.coordenadas}
               radius={radioProgreso}
+              // ⚡ CORRECCIÓN CRÍTICA: 'pane' se pasa como una PROP DIRECTA de react-leaflet, NO dentro de pathOptions
+              pane="capa-nodos" 
               pathOptions={{
-                pane: 'capa-nodos',
                 color: colorBorde,
                 fillColor: colorRelleno,
                 fillOpacity: opacidadRelleno,
                 weight: esSeleccionado ? 4 : (estaComprado ? 3 : 2),
-                // Mantenemos tu excelente idea de la línea punteada para los nodos bloqueados
                 dashArray: !municipio.desbloqueado ? '4, 4' : undefined 
               }}
               eventHandlers={{
