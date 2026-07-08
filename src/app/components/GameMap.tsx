@@ -79,7 +79,6 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
                   pathOptions={{
                     color: esSeleccionada ? '#f59e0b' : (tema === 'dark' ? '#38bdf8' : '#0284c7'),
                     weight: grosorLinea,
-                    // 🏎️ CONDICIONAL DE ANIMACIÓN: Solo se activa la clase animada si el puente está seleccionado
                     className: `vector-carretera ${esSeleccionada ? 'carretera-ida-animada' : ''}`
                   } as any}
                   eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); } }}
@@ -89,7 +88,6 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
                   pathOptions={{
                     color: esSeleccionada ? '#d97706' : (tema === 'dark' ? '#0ea5e9' : '#0369a1'),
                     weight: grosorLinea,
-                    // 🏎️ CONDICIONAL DE ANIMACIÓN SENTIDO INVERSO
                     className: `vector-carretera ${esSeleccionada ? 'carretera-vuelta-animada' : ''}`
                   } as any}
                   eventHandlers={{ click: (e) => { L.DomEvent.stopPropagation(e); onRoadClick(conexion.id); } }}
@@ -107,22 +105,31 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
             
             const radioProgreso = estaComprado ? 9 + (municipio.nivelActual * 2.5) : 8;
             
-            let colorBorde = '#475569'; 
-            let colorRelleno = tema === 'dark' ? '#0f172a' : '#94a3b8';
+            // 🎨 REFACTORIZACIÓN ESTÉTICA: Rompemos el camuflaje oscuro
+            // Configuramos un gris pizarra claro/visible por defecto para nodos estrictamente bloqueados
+            let colorBorde = tema === 'dark' ? '#475569' : '#94a3b8'; 
+            let colorRelleno = tema === 'dark' ? '#334155' : '#e2e8f0';
+            let opacidadRelleno = 0.35;
 
+            // Nodo disponible para comprar con Llaves pero nivel 0
             if (municipio.desbloqueado && !estaComprado) {
-              colorBorde = '#64748b'; 
-              colorRelleno = tema === 'dark' ? '#1e293b' : '#cbd5e1';
+              colorBorde = '#a1a1aa'; 
+              colorRelleno = tema === 'dark' ? '#27272a' : '#f4f4f5';
+              opacidadRelleno = 0.6;
             }
 
+            // Nodo comprado y generando ingresos activos
             if (municipio.desbloqueado && estaComprado) {
               colorBorde = '#10b981'; 
               colorRelleno = '#34d399';
+              opacidadRelleno = 0.95;
             }
 
+            // Nodo actualmente clickeado por el jugador
             if (esSeleccionado) {
               colorBorde = '#f59e0b'; 
               colorRelleno = '#fbbf24';
+              opacidadRelleno = 0.95;
             }
 
             return (
@@ -134,15 +141,17 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
                   pane: 'capa-nodos',
                   color: colorBorde,
                   fillColor: colorRelleno,
-                  fillOpacity: esSeleccionado || estaComprado ? 0.95 : 0.4,
+                  fillOpacity: opacidadRelleno,
                   weight: esSeleccionado ? 4 : (estaComprado ? 3 : 1.5),
+                  // ✨ EFECTO VISUAL CLAVE: Si está bloqueado, el contorno es punteado para denotar territorio inexplorado
+                  dashArray: !municipio.desbloqueado ? '4, 4' : undefined 
                 }}
                 eventHandlers={{
                   click: (e) => { L.DomEvent.stopPropagation(e); onNodeClick(municipio.id); }
                 }}
               >
                 <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-                  <div className="p-0.5 font-sans font-bold text-xs">
+                  <div className="p-0.5 font-sans font-bold text-xs text-zinc-900 dark:text-zinc-100">
                     {municipio.nombre} {!municipio.desbloqueado ? '🔒' : (esSeleccionado ? '🔸' : (estaComprado ? '🟩' : '⚪'))}
                   </div>
                 </Tooltip>
