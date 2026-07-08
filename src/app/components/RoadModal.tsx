@@ -21,7 +21,7 @@ export default function RoadModal({ roadId, onClose }: RoadModalProps) {
 
   if (!carretera || !origen || !destino) return null;
 
-  const costoMejora = carretera.carriles * 200000000; // $200M por carril extra
+  const costoMejora = carretera.carriles * 250000000; // $200M por carril extra
   const puedePagar = dinero >= costoMejora;
 
   return (

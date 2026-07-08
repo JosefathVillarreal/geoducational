@@ -179,7 +179,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         tipo: 'max_level', // Corrección del tipado unión anterior
         icono: '👑',
         mensaje: `¡${nodo.nombre} Desarrollado!`,
-        microcopy: `Has ganado 1 Token de Expansión Territorial Federal.`
+        microcopy: `Has ganado 1 llave de ciudad, desbloquea una nueva ciudad.`
       });
     } else {
       nuevasAlertas.push({
@@ -253,8 +253,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
     if (idx === -1) return {};
     const conexion = state.conexiones[idx]!;
     
-    // 🔥 REGLA SOLICITADA: La ampliación ahora cuesta proporcionalmente el 20% del puente original
-    const costo = conexion.costoConstruccion * 0.20; 
+    // 🔥 REGLA SOLICITADA: La ampliación ahora cuesta proporcionalmente el 35% del puente original
+    const costo = conexion.costoConstruccion * 0.35; 
     
     if (state.dinero < costo || conexion.carriles >= 6) return {};
 
@@ -284,7 +284,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const proximasCiudades = Object.values(state.municipios).filter(m => !m.desbloqueado);
     const ciudadReferencia = proximasCiudades.length > 0 
       ? proximasCiudades.reduce((prev, curr) => prev.precioBase < curr.precioBase ? prev : curr)
-      : { precioBase: 500000000 };
+      : { precioBase: 50000000000 };
 
     const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 0.5);
 
