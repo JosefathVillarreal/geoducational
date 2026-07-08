@@ -97,68 +97,68 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
           })}
         </Pane>
 
-        {/* CAPA DE NODOS MUNICIPALES */}
-        <Pane name="capa-nodos" style={{ zIndex: 500 }}>
-          {Object.values(municipios).map((municipio) => {
-            const estaComprado = municipio.nivelActual > 0;
-            const esSeleccionado = selectedNodeId === municipio.id;
-            
-            const radioProgreso = estaComprado ? 9 + (municipio.nivelActual * 2.5) : 8;
-            
-            // 🎨 REFACTORIZACIÓN ESTÉTICA: Rompemos el camuflaje oscuro
-            // Configuramos un gris pizarra claro/visible por defecto para nodos estrictamente bloqueados
-            let colorBorde = tema === 'dark' ? '#475569' : '#94a3b8'; 
-            let colorRelleno = tema === 'dark' ? '#334155' : '#e2e8f0';
-            let opacidadRelleno = 0.35;
+       {/* CAPA DE NODOS MUNICIPALES */}
+      <Pane name="capa-nodos" style={{ zIndex: 500 }}>
+        {Object.values(municipios).map((municipio) => {
+          const estaComprado = municipio.nivelActual > 0;
+          const esSeleccionado = selectedNodeId === municipio.id;
+          
+          // 📐 OPTIMIZACIÓN DE TAMAÑO: Aumentamos el radio base (de 8 a 11) para que sean perfectamente visibles y fáciles de presionar en móviles
+          const radioProgreso = estaComprado ? 10 + (municipio.nivelActual * 2.5) : 11;
+          
+          // 🎨 CORRECCIÓN DE CONTRASTE: Colores sólidos tipo "Ranura de Expansión" para romper el camuflaje
+          let colorBorde = tema === 'dark' ? '#64748b' : '#94a3b8'; // Gris Slate 500
+          let colorRelleno = tema === 'dark' ? '#475569' : '#cbd5e1'; // Gris Slate 600 sólido
+          let opacidadRelleno = 0.85; // 🔥 ANTES: 0.35 (provocaba que se transparentara con el fondo)
 
-            // Nodo disponible para comprar con Llaves pero nivel 0
-            if (municipio.desbloqueado && !estaComprado) {
-              colorBorde = '#a1a1aa'; 
-              colorRelleno = tema === 'dark' ? '#27272a' : '#f4f4f5';
-              opacidadRelleno = 0.6;
-            }
+          // Nodo disponible para comprar con Llaves pero nivel 0 (Glow zinc)
+          if (municipio.desbloqueado && !estaComprado) {
+            colorBorde = '#a1a1aa'; 
+            colorRelleno = tema === 'dark' ? '#3f3f46' : '#f4f4f5';
+            opacidadRelleno = 0.9;
+          }
 
-            // Nodo comprado y generando ingresos activos
-            if (municipio.desbloqueado && estaComprado) {
-              colorBorde = '#10b981'; 
-              colorRelleno = '#34d399';
-              opacidadRelleno = 0.95;
-            }
+          // Nodo comprado y generando ingresos activos (Esmeralda brillante)
+          if (municipio.desbloqueado && estaComprado) {
+            colorBorde = '#10b981'; 
+            colorRelleno = '#34d399';
+            opacidadRelleno = 0.95;
+          }
 
-            // Nodo actualmente clickeado por el jugador
-            if (esSeleccionado) {
-              colorBorde = '#f59e0b'; 
-              colorRelleno = '#fbbf24';
-              opacidadRelleno = 0.95;
-            }
+          // Nodo actualmente seleccionado por el jugador (Ámbar juego)
+          if (esSeleccionado) {
+            colorBorde = '#f59e0b'; 
+            colorRelleno = '#fbbf24';
+            opacidadRelleno = 1.0;
+          }
 
-            return (
-              <CircleMarker
-                key={municipio.id}
-                center={municipio.coordenadas}
-                radius={radioProgreso}
-                pathOptions={{
-                  pane: 'capa-nodos',
-                  color: colorBorde,
-                  fillColor: colorRelleno,
-                  fillOpacity: opacidadRelleno,
-                  weight: esSeleccionado ? 4 : (estaComprado ? 3 : 1.5),
-                  // ✨ EFECTO VISUAL CLAVE: Si está bloqueado, el contorno es punteado para denotar territorio inexplorado
-                  dashArray: !municipio.desbloqueado ? '4, 4' : undefined 
-                }}
-                eventHandlers={{
-                  click: (e) => { L.DomEvent.stopPropagation(e); onNodeClick(municipio.id); }
-                }}
-              >
-                <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-                  <div className="p-0.5 font-sans font-bold text-xs text-zinc-900 dark:text-zinc-100">
-                    {municipio.nombre} {!municipio.desbloqueado ? '🔒' : (esSeleccionado ? '🔸' : (estaComprado ? '🟩' : '⚪'))}
-                  </div>
-                </Tooltip>
-              </CircleMarker>
-            );
-          })}
-        </Pane>
+          return (
+            <CircleMarker
+              key={municipio.id}
+              center={municipio.coordenadas}
+              radius={radioProgreso}
+              pathOptions={{
+                pane: 'capa-nodos',
+                color: colorBorde,
+                fillColor: colorRelleno,
+                fillOpacity: opacidadRelleno,
+                weight: esSeleccionado ? 4 : (estaComprado ? 3 : 2),
+                // Mantenemos tu excelente idea de la línea punteada para los nodos bloqueados
+                dashArray: !municipio.desbloqueado ? '4, 4' : undefined 
+              }}
+              eventHandlers={{
+                click: (e) => { L.DomEvent.stopPropagation(e); onNodeClick(municipio.id); }
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -10]} opacity={0.95}>
+                <div className="p-0.5 font-sans font-bold text-xs text-zinc-900 dark:text-zinc-100">
+                  {municipio.nombre} {!municipio.desbloqueado ? '🔒' : (esSeleccionado ? '🔸' : (estaComprado ? '🟩' : '⚪'))}
+                </div>
+              </Tooltip>
+            </CircleMarker>
+          );
+        })}
+      </Pane>
       </MapContainer>
     </div>
   );
