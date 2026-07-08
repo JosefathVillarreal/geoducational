@@ -53,7 +53,7 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
 
   return (
     <div className="w-full h-full relative z-0">
-      <MapContainer center={POSICION_CENTRAL_NL} zoom={11} minZoom={4} maxZoom={15} className="w-full h-full" zoomControl={false}>
+      <MapContainer center={POSICION_CENTRAL_NL} zoom={8} minZoom={4} maxZoom={15} className="w-full h-full" zoomControl={false}>
         <TileLayer url={tileUrl} attribution="&copy; CARTO" />
 
         <IntercambiadorBloqueoMapa congelar={mapaDebeCongelarse} />
