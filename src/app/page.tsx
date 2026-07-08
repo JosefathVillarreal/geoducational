@@ -30,8 +30,10 @@ export default function Home() {
   const alertas = useGameStore((state) => state.alertas);
   const removerAlerta = useGameStore((state) => state.removerAlerta);
 
-  const [isHudCollapsed, setIsHudCollapsed] = useState(false);
+  const [setIsHudCollapsed] = useState(false);
   const [state, send] = useMachine(gameMachine);
+  const isHudCollapsed = useGameStore((state) => state.isHudCollapsed); // ⚡ Extraemos la variable del store
+  const conmutarHud = useGameStore((state) => state.conmutarHud);       // ⚡ Extraemos la función del store
 
   useEffect(() => {
     if (alertas.length > 0) {
@@ -130,7 +132,12 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-1.5">
             <button onClick={conmutarTema} className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 rounded-lg transition"><Sun size={13} /></button>
-            <button onClick={() => setIsHudCollapsed(!isHudCollapsed)} className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg transition">{isHudCollapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}</button>
+            <button 
+              onClick={conmutarHud} // ⚡ SOLUCIÓN: Llama directamente a la acción inmutable de Zustand
+              className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg transition"
+            >
+              {isHudCollapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+            </button>
           </div>
         </div>
 

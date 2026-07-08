@@ -39,6 +39,7 @@ interface GameState {
   dinero: number;
   tema: 'light' | 'dark';
   llavesDeLaCiudad: number; // ✨ SOLUCIÓN: Cambiado de 0 a number para permitir progresión fluida
+  
   currentViewFocus: 'municipio' | 'estado' | 'pais';
   municipios: Record<string, Municipio>;
   conexiones: Conexion[];
@@ -55,6 +56,8 @@ interface GameState {
   lanzarQuizPregunta: () => void;
   responderQuizPregunta: (indexSeleccionado: number) => { exito: boolean; mensaje: string; microcopy: string };
   cerrarQuiz: () => void;
+  isHudCollapsed: boolean;
+  conmutarHud: () => void;
 }
 
 export const formatearDinero = (val: number): string => {
@@ -77,6 +80,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
   tema: 'dark',
   llavesDeLaCiudad: 1, // Otorgamos 1 llave inicial de regalo para expandirse rápido
   currentViewFocus: 'municipio',
+  isHudCollapsed: false,
   quizActivo: null,
   municipios: {
     // METROPOLITANOS INICIALES LIBRES
@@ -142,6 +146,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
   },
   conexiones: [],
   alertas: [],
+  
+  conmutarHud: () => set((state) => ({ isHudCollapsed: !state.isHudCollapsed })),
 
   conmutarTema: () => set((state) => {
     const nuevoTema = state.tema === 'dark' ? 'light' : 'dark';
