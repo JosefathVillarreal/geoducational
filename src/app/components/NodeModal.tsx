@@ -52,20 +52,20 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
   const puedePagarUpgrade = dinero >= costoUpgrade;
   const puedePagarPuente = dinero >= costoBasePuente;
 
-  const progresoUpgrade = Math.min(dinero / costoUpgrade, 1);
-  const progresoPuente = Math.min(dinero / costoBasePuente, 1);
+  const progresoUpgrade = (Math.min(dinero / costoUpgrade, 1)*2;
+  const progresoPuente = (Math.min(dinero / costoBasePuente, 1))*2;
 
   const dispararTooltipUpgrade = () => {
     if (!puedePagarUpgrade && municipio.desbloqueado && !esMaxNivel) {
       setShowUpgradeTooltip(true);
-      setTimeout(() => setShowUpgradeTooltip(false), 2500);
+      setTimeout(() => setShowUpgradeTooltip(false), 2000);
     }
   };
 
   const dispararTooltipPuente = () => {
     if (!puedePagarPuente) {
       setShowBridgeTooltip(true);
-      setTimeout(() => setShowBridgeTooltip(false), 2500);
+      setTimeout(() => setShowBridgeTooltip(false), 2000);
     }
   };
 

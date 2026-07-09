@@ -117,7 +117,7 @@ export default function QuizCard() {
                   onClick={handleContinuar}
                   className="mt-4 px-6 py-2 bg-slate-900 text-white dark:bg-white dark:text-slate-950 rounded-lg text-xs font-black uppercase tracking-wider shadow-md transition active:scale-95"
                 >
-                  Continuar Simulación
+                  Continuar
                 </button>
               </motion.div>
                 )}
