@@ -58,7 +58,7 @@ interface GameState {
   lanzarQuizPregunta: () => void;
   responderQuizPregunta: (indexSeleccionado: number) => { exito: boolean; mensaje: string; microcopy: string };
   cerrarQuiz: () => void;
-  procesarSegundoJuego: () => void; // Ciclo de ganancias pasivas súper acelerado
+  procesarSegundoJuego: () => void; // Ciclo de ganancias pasivas acelerado
   inicializarJuegoNuevo: () => string; // Devuelve el ID del nodo de inicio para centrar mapa
 }
 
@@ -260,8 +260,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const destino = state.municipios[hastaId];
     if (!origen || !destino || !origen.desbloqueado || !destino.desbloqueado) return;
 
-    // Cálculo dinámico entre los nodos activos involucrados
-    // Fórmula: 1/10 parte del precio base de origen + (0.10 * distancia * costoBase)
+    // Cálculo dinámico equilibrado: 1/10 del precio de origen + (10% de base * distancia en km)
     const dist = calcularDistanciaKm(origen.coordenadas, destino.coordenadas);
     const costoBase = origen.precioBase / 10;
     const costoCarretera = Math.floor(costoBase + (costoBase * 0.10 * dist)); 
@@ -354,20 +353,23 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const ciudadRandom = state.municipios[idRandom]!;
     const datoRandom = ciudadRandom.datosCuriosos[Math.floor(Math.random() * ciudadRandom.datosCuriosos.length)]!;
 
-    // Recompensa del quiz escalada: Multiplicado x100 respecto al estímulo previo (800.0x de precio base)
+    // Recompensa reducida a la mitad equilibrada (factor 400.0x de precio base de ciudad barata)
     const proximasCiudades = Object.values(state.municipios).filter(m => !m.desbloqueado);
     const ciudadReferencia = proximasCiudades.length > 0
       ? proximasCiudades.reduce((prev, curr) => prev.precioBase < curr.precioBase ? prev : curr)
       : { precioBase: 500000000 };
 
-    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 800.0); 
+    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 400.0); 
 
-    const distractores = Object.values(state.municipios)
+    // Opciones incorrectas dinámicas para evitar que siempre salgan las mismas (San Nicolás/Apodaca)
+    const otrasCiudadesActivas = Object.values(state.municipios)
       .filter(m => m.id !== ciudadRandom.id)
       .map(m => m.nombre);
-
-    const opcionA = distractores[0] || "San Pedro Garza";
-    const opcionB = distractores[1] || "Allende";
+    
+    // Mezcla aleatoria de distractores dinámicos del mapa global de 51 municipios
+    const distractoresMezclados = otrasCiudadesActivas.sort(() => Math.random() - 0.5);
+    const opcionA = distractoresMezclados[0] || "Allende";
+    const opcionB = distractoresMezclados[1] || "Galeana";
 
     const opcionesMezcladas = [ciudadRandom.nombre, opcionA, opcionB].sort(() => Math.random() - 0.5);
     const indexCorrecto = opcionesMezcladas.indexOf(ciudadRandom.nombre);
@@ -396,7 +398,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         tipo: 'success',
         icono: '🧠',
         mensaje: '¡Trivia Superada con Éxito!',
-        microcopy: `Recibiste un subsidio federal masivo súper escalado de ${formatearDinero(quiz.recompensaEstimada)}.`
+        microcopy: `Recibiste un subsidio federal masivo de ${formatearDinero(quiz.recompensaEstimada)}.`
       };
 
       set((state) => ({
@@ -454,8 +456,8 @@ export const useGameStore = create<GameState>()((set, get) => ({
           0
         );
 
-        // Toda la ganancia combinada de nodos y puentes se duplica (factor * 2) al final del tick
-        ingresosTotales += (ingresoBaseNodo * multiplicadorPuentes) * 2;
+        // Toda la ganancia combinada de nodos y puentes se duplica (factor * 2) al final del tick -> Multiplicado por 4 (doble de la anterior versión)
+        ingresosTotales += (ingresoBaseNodo * multiplicadorPuentes) * 4;
       }
     });
 

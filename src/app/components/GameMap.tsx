@@ -1,4 +1,3 @@
-// src/app/components/GameMap.tsx
 'use client';
 
 import { Fragment, useEffect } from 'react';
@@ -60,7 +59,7 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
         <IntercambiadorBloqueoMapa congelar={mapaDebeCongelarse} />
         <ControladorCamaraEnfoque focus={focus} />
 
-        {/* 🛣️ CAPA 1: DIBUJAMOS PRIMERO LAS CARRETERAS (Se renderizan al fondo del lienzo SVG) */}
+        {/* 🛣️ CAPA 1: DIBUJAMOS LAS CARRETERAS EN LA CAPA DE CONTENIDO COMÚN (OVERLAY) */}
         {conexiones.map((conexion) => {
           const origen = municipios[conexion.desde];
           const destino = municipios[conexion.hasta];
@@ -83,7 +82,7 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
                 } as any}
                 eventHandlers={{ 
                   click: (e) => { 
-                    L.DomEvent.stopPropagation(e.originalEvent); // Corrección: Detener propagación nativa real
+                    L.DomEvent.stopPropagation(e.originalEvent); 
                     onRoadClick(conexion.id); 
                   } 
                 }}
@@ -106,15 +105,14 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
           );
         })}
 
-        {/* 🗺️ CAPA 2: DIBUJAMOS LOS NODOS MUNICIPALES DESPUÉS (Se superponen de forma perfecta sobre las líneas) */}
+        {/* 🗺️ CAPA 2: DIBUJAMOS LOS NODOS MUNICIPALES CON EL ATRIBUTO PANE="MARKERPANE" */}
+        {/* Esto fuerza a Leaflet a dibujarlos en la capa de marcadores superior (z-index: 600), resolviendo el bug de superposición con carreteras de forma nativa */}
         {Object.values(municipios).map((municipio) => {
           const estaComprado = municipio.nivelActual > 0;
           const esSeleccionado = selectedNodeId === municipio.id;
           
-          // Radio base sólido para asegurar una excelente zona de impacto táctil
           const radioProgreso = estaComprado ? 10 + (municipio.nivelActual * 2.5) : 11;
           
-          // Colores de alta presencia para romper definitivamente el camuflaje oscuro
           let colorBorde = tema === 'dark' ? '#94a3b8' : '#64748b'; 
           let colorRelleno = tema === 'dark' ? '#475569' : '#cbd5e1';
           let opacidadRelleno = 0.85;
@@ -142,6 +140,7 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
               key={municipio.id}
               center={municipio.coordenadas}
               radius={radioProgreso}
+              pane="markerPane" // Forzado físico de apilamiento superior nativo
               pathOptions={{
                 color: colorBorde,
                 fillColor: colorRelleno,
@@ -151,7 +150,7 @@ export default function GameMap({ selectedNodeId, selectedRoadId, onNodeClick, o
               }}
               eventHandlers={{
                 click: (e) => { 
-                  L.DomEvent.stopPropagation(e.originalEvent); // Corrección: Detener propagación nativa real
+                  L.DomEvent.stopPropagation(e.originalEvent); 
                   onNodeClick(municipio.id); 
                 }
               }}

@@ -67,10 +67,10 @@ export default function Home() {
   }, [procesarSegundoJuego]);
 
   useEffect(() => {
-    // Dispara preguntas desafiantes cada 60 segundos del historial de últimos 5 activos
+    // Dispara preguntas desafiantes cada 120 segundos (2 minutos) para una UX más relajada y cerebral
     const cronometroQuiz = setInterval(() => {
       lanzarQuizPregunta();
-    }, 60000);
+    }, 120000);
     return () => clearInterval(cronometroQuiz);
   }, [lanzarQuizPregunta]);
 
