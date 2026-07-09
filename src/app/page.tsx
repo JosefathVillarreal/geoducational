@@ -42,7 +42,7 @@ export default function Home() {
   const [state, send] = useMachine(gameMachine);
 
   useEffect(() => {
-    // Inicializa el juego y enfoca la cámara satelital en el nodo aleatorio de inicio
+    // Inicializa el juego y enfoca la cámara satelital en el nodo aleatorio de inicio de forma segura
     const startingNodeId = inicializarJuegoNuevo();
     if (startingNodeId) {
       send({ type: 'SELECT_NODE', id: startingNodeId });
@@ -59,7 +59,7 @@ export default function Home() {
   }, [alertas, removerAlerta]);
 
   useEffect(() => {
-    // Bucle económico pasivo compuesto y optimizado (Cada 1 segundo)
+    // Bucle económico pasivo compuesto y súper optimizado (Cada 1 segundo)
     const loop = setInterval(() => {
       procesarSegundoJuego();
     }, 1000);
@@ -91,6 +91,25 @@ export default function Home() {
   return (
     <main className="relative w-full h-screen select-none overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
       
+      {/* 🎨 INYECCIÓN CSS PARA APILAMIENTO DE CAPAS (Los nodos siempre arriba de los puentes) */}
+      <style>{`
+        /* Capas nativas de Leaflet */
+        .leaflet-marker-pane,
+        .leaflet-shadow-pane {
+          z-index: 600 !important;
+        }
+        .leaflet-overlay-pane {
+          z-index: 450 !important;
+        }
+        /* Apilamiento SVG compatible con navegadores de escritorio y móviles modernos (SVG 2 specs) */
+        svg.leaflet-zoom-animated path[fill="none"] {
+          z-index: 10 !important;
+        }
+        svg.leaflet-zoom-animated path:not([fill="none"]) {
+          z-index: 100 !important;
+        }
+      `}</style>
+
       {/* 🔔 NOTIFICACIONES CON EFECTO CELEBRACIÓN DE NIVEL MÁXIMO (Cromática Oro de un solo elemento sin duplicados) */}
       <div className="absolute top-4 right-4 z-[3000] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4">
         <AnimatePresence mode="popLayout">
@@ -193,10 +212,12 @@ export default function Home() {
                     ? `Lvl ${m.nivelActual}` 
                     : `💸 ${formatearDinero(m.precioBase)}`;
 
-              // El cálculo de puente se efectúa basado en los nodos activos involucrados
+              // El costo de construcción ahora se calcula usando la décima parte de la base + 10% por distancia en kilómetros
               if (nodoOrigenObra && nodoOrigenObra.id !== m.id && m.desbloqueado) {
                 const dist = calcularDistanciaKm(nodoOrigenObra.coordenadas, m.coordenadas);
-                tagInfo = `📏 ${dist.toFixed(0)}km ➜ ${formatearDinero((150 + dist * 40) * 1000000)}`;
+                const costoBase = nodoOrigenObra.precioBase / 10;
+                const costoBridge = Math.floor(costoBase + (costoBase * 0.10 * dist));
+                tagInfo = `📏 ${dist.toFixed(0)}km ➜ ${formatearDinero(costoBridge)}`;
               }
 
               return (

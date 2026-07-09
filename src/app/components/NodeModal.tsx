@@ -115,7 +115,8 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
     ? Math.floor(municipio.precioBase * Math.pow(1.8, municipio.nivelActual)) // Ajustado a 1.8 del store
     : municipio.precioBase;
 
-  const costoBasePuente = 150000000; // Costo inicial base adaptado a la economía acelerada
+  // El costo base del puente es exactamente 1/10 del precio base del nodo de donde sale
+  const costoBasePuente = municipio.precioBase / 10; 
 
   const puedePagarUpgrade = dinero >= costoUpgrade;
   const puedePagarPuente = dinero >= costoBasePuente;
@@ -199,7 +200,7 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
               }}
               className={`w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition border ${
                 llavesDeLaCiudad > 0 
-                  ? 'bg-amber-500 border-amber-600 text-slate-950 font-black hover:bg-amber-400 active:scale-95' 
+                  ? 'bg-amber-500 border-amber-600 text-slate-950 font-black hover:bg-amber-440 active:scale-95' 
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent cursor-not-allowed'
               }`}
             >
@@ -246,12 +247,12 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
                 </button>
               </div>
 
-              {/* BOTÓN PUENTE */}
+              {/* BOTÓN PUENTE CON PRECIO DINÁMICO DESDE ORIGEN */}
               <div className="relative">
                 <AnimatePresence>
                   {showBridgeTooltip && (
                     <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-slate-950 text-white font-mono text-[9px] py-1 px-2 rounded border border-slate-800 z-50 whitespace-nowrap shadow-2xl">
-                      💸 Faltan fondos para construir puentes
+                      💸 Faltan {formatearDinero(costoBasePuente - dinero)}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -268,7 +269,7 @@ export default function NodeModal({ nodeId, onClose, onBuildBridgeInit }: NodeMo
                     <motion.div className="absolute left-0 top-0 bottom-0 bg-amber-500/20 pointer-events-none" initial={{ width: 0 }} animate={{ width: `${progresoPuenteDinero * 100}%` }} transition={{ type: 'spring' }} />
                   )}
                   <GitCommit size={14} />
-                  <span className="relative z-10">Puente</span>
+                  <span className="relative z-10">Puente ({formatearDinero(costoBasePuente)})</span>
                 </button>
               </div>
 

@@ -58,7 +58,7 @@ interface GameState {
   lanzarQuizPregunta: () => void;
   responderQuizPregunta: (indexSeleccionado: number) => { exito: boolean; mensaje: string; microcopy: string };
   cerrarQuiz: () => void;
-  procesarSegundoJuego: () => void; // Ciclo de ganancias pasivas acelerado
+  procesarSegundoJuego: () => void; // Ciclo de ganancias pasivas súper acelerado
   inicializarJuegoNuevo: () => string; // Devuelve el ID del nodo de inicio para centrar mapa
 }
 
@@ -149,7 +149,7 @@ const generarMunicipiosEstaticos = (): Record<string, Municipio> => {
 };
 
 export const useGameStore = create<GameState>()((set, get) => ({
-  dinero: 300000000, // Tesoro estatal inicial acelerado x2 (300M)
+  dinero: 500000000, // Tesoro estatal inicial adaptado
   tema: 'dark',
   llavesDeLaCiudad: 3, 
   currentViewFocus: 'municipio',
@@ -162,7 +162,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
   inicializarJuegoNuevo: () => {
     const ids = Object.keys(BASE_MUNICIPIOS_DATA);
-    // Elegimos un nodo aleatorio para comenzar como recomendación
+    // Elegimos un nodo aleatorio seguro para comenzar
     const idRandom = ids[Math.floor(Math.random() * ids.length)] || 'nl_mty';
 
     const nuevosMunicipios: Record<string, Municipio> = {};
@@ -184,7 +184,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
     };
 
     set({
-      dinero: 300000000, 
+      dinero: 500000000, 
       llavesDeLaCiudad: 3, 
       municipios: nuevosMunicipios,
       conexiones: [],
@@ -193,7 +193,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       quizActivo: null
     });
 
-    return idRandom; // Devuelve el id para centrar y hacer zoom en el mapa
+    return idRandom; // Devuelve el ID para centrar el mapa al inicio
   },
 
   conmutarTema: () => set((state) => {
@@ -261,8 +261,10 @@ export const useGameStore = create<GameState>()((set, get) => ({
     if (!origen || !destino || !origen.desbloqueado || !destino.desbloqueado) return;
 
     // Cálculo dinámico entre los nodos activos involucrados
+    // Fórmula: 1/10 parte del precio base de origen + (0.10 * distancia * costoBase)
     const dist = calcularDistanciaKm(origen.coordenadas, destino.coordenadas);
-    const costoCarretera = Math.floor((150 + (dist * 40)) * 1000000); 
+    const costoBase = origen.precioBase / 10;
+    const costoCarretera = Math.floor(costoBase + (costoBase * 0.10 * dist)); 
 
     if (state.dinero < costoCarretera) return;
 
@@ -328,7 +330,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       tipo: 'build',
       icono: '🛣️',
       mensaje: `Autopista Mejorada`,
-      microcopy: `Ampliada a ${conexion.carriles + 1} carriles. Multiplicador de comercio regional sube a +80%.`
+      microcopy: `Ampliada a ${conexion.carriles + 1} carriles. Multiplicador logístico sube a +160% por carril.`
     };
 
     return {
@@ -352,13 +354,13 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const ciudadRandom = state.municipios[idRandom]!;
     const datoRandom = ciudadRandom.datosCuriosos[Math.floor(Math.random() * ciudadRandom.datosCuriosos.length)]!;
 
-    // Recompensa incrementada a 8.0x (4 veces la original de 2.0x)
+    // Recompensa del quiz escalada: Multiplicado x100 respecto al estímulo previo (800.0x de precio base)
     const proximasCiudades = Object.values(state.municipios).filter(m => !m.desbloqueado);
     const ciudadReferencia = proximasCiudades.length > 0
       ? proximasCiudades.reduce((prev, curr) => prev.precioBase < curr.precioBase ? prev : curr)
       : { precioBase: 500000000 };
 
-    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 8.0); 
+    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 800.0); 
 
     const distractores = Object.values(state.municipios)
       .filter(m => m.id !== ciudadRandom.id)
@@ -394,7 +396,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
         tipo: 'success',
         icono: '🧠',
         mensaje: '¡Trivia Superada con Éxito!',
-        microcopy: `Recibiste un subsidio hacendario masivo de ${formatearDinero(quiz.recompensaEstimada)}.`
+        microcopy: `Recibiste un subsidio federal masivo súper escalado de ${formatearDinero(quiz.recompensaEstimada)}.`
       };
 
       set((state) => ({
@@ -405,7 +407,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
       return {
         exito: true,
         mensaje: "¡Respuesta Correcta!",
-        microcopy: `Ganaste ${formatearDinero(quiz.recompensaEstimada)} en fondos estatales.`
+        microcopy: `Ganaste ${formatearDinero(quiz.recompensaEstimada)} en fondos gubernamentales acelerados.`
       };
     } else {
       // RESPUESTA INCORRECTA: Se desaloja este nodo del historial FIFO
@@ -438,21 +440,22 @@ export const useGameStore = create<GameState>()((set, get) => ({
     let ingresosTotales = 0;
     Object.values(state.municipios).forEach((m) => {
       if (m.desbloqueado && m.nivelActual > 0) {
-        // Multiplicador de población duplicado a 0.90 (antes 0.45) para jugar x2 más rápido
-        const ingresoBaseNodo = m.poblacion * 0.90 * m.nivelActual; 
+        // Multiplicador de población incrementado a 1.80 (doble del 0.90 previo)
+        const ingresoBaseNodo = m.poblacion * 1.80 * m.nivelActual; 
 
         // Filtrar puentes que tocan este nodo
         const puentesConectados = state.conexiones.filter(
           (c) => c.desde === m.id || c.hasta === m.id
         );
 
-        // Bonificación de autopista incrementada a +80% por carril (antes 40%)
+        // Bonificación de autopista incrementada a un colosal +1.60 por carril (antes 0.80)
         const multiplicadorPuentes = 1 + puentesConectados.reduce(
-          (acc, curr) => acc + (curr.carriles * 0.80),
+          (acc, curr) => acc + (curr.carriles * 1.60),
           0
         );
 
-        ingresosTotales += ingresoBaseNodo * multiplicadorPuentes;
+        // Toda la ganancia combinada de nodos y puentes se duplica (factor * 2) al final del tick
+        ingresosTotales += (ingresoBaseNodo * multiplicadorPuentes) * 2;
       }
     });
 
