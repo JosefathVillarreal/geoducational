@@ -32,6 +32,7 @@ export interface QuizQuestion {
   opciones: string[];
   indexCorrecto: number;
   recompensaEstimada: number;
+  nodoAsociadoId: string; // ID del nodo al que pertenece esta trivia
 }
 
 interface GameState {
@@ -58,12 +59,12 @@ interface GameState {
   responderQuizPregunta: (indexSeleccionado: number) => { exito: boolean; mensaje: string; microcopy: string };
   cerrarQuiz: () => void;
   procesarSegundoJuego: () => void; // Ciclo de ganancias pasivas acelerado
-  inicializarJuegoNuevo: () => void; // Inicializador seguro para el cliente (evita Hydration Mismatch)
+  inicializarJuegoNuevo: () => string; // Devuelve el ID del nodo de inicio para centrar mapa
 }
 
 export const formatearDinero = (val: number): string => {
-  if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(3).substring(0, 5)}B`;
-  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(3).substring(0, 5)}M`;
+  if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(2)}B`;
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
   if (val >= 1_000) return `$${(val / 1_000).toFixed(0)}K`;
   return `$${val}`;
 };
@@ -76,13 +77,9 @@ export const calcularDistanciaKm = (p1: [number, number], p2: [number, number]):
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 };
 
-// Helper interno de prevención de alertas duplicadas
-const agregarAlertaUnica = (alertasExistentes: GameAlert[], nuevaAlerta: GameAlert): GameAlert[] => {
-  const esDuplicada = alertasExistentes.some(
-    (a) => a.tipo === nuevaAlerta.tipo && a.mensaje === nuevaAlerta.mensaje
-  );
-  if (esDuplicada) return alertasExistentes;
-  return [...alertasExistentes, nuevaAlerta];
+// Helper de alertas que limita la cola a un máximo de 1 elemento (Elimina alertas dobles)
+const agregarAlertaUnica = (nuevaAlerta: GameAlert): GameAlert[] => {
+  return [nuevaAlerta];
 };
 
 const BASE_MUNICIPIOS_DATA: Record<string, Omit<Municipio, 'desbloqueado' | 'nivelActual'>> = {
@@ -97,11 +94,11 @@ const BASE_MUNICIPIOS_DATA: Record<string, Omit<Municipio, 'desbloqueado' | 'niv
   'nl_gar': { id: 'nl_gar', nombre: 'García', poblacion: 397205, coordenadas: [25.8114, -100.5947], precioBase: 420000000, datosCuriosos: ["🦇 Cuna del paraje turístico Grutas de García, cavernas con fósiles marinos.", "🌵 Paisaje semidesértico montañoso que resguarda el centro histórico del General García.", "🏭 Antigua zona agraria convertida en un gigante de fundición automotriz pesada."] },
   'nl_cad': { id: 'nl_cad', nombre: 'Cadereyta Jiménez', poblacion: 122337, coordenadas: [25.5894, -99.9861], precioBase: 380000000, datosCuriosos: ["🛢️ Sede de la Refinería Ingeniero Héctor R. Lara Sosa, pilar energético regional.", "⚾ Conocida como la cuna del béisbol en el estado de Nuevo León.", "🧹 Famosa por su producción tradicional de escobas de espiga de maíz."] },
   'nl_stg': { id: 'nl_stg', nombre: 'Santiago', poblacion: 46784, coordenadas: [25.4239, -100.1506], precioBase: 850000000, datosCuriosos: ["✨ Declarado Pueblo Mágico gracias a su arquitectura colonial y calles empedradas.", "🌊 Alberga la Presa de la Boca, centro recreativo acuático de fin de semana.", "🥾 Custodia la Cascada Cola de Caballo en las faldas de la Sierra Madre."] },
-  'nl_mon': { id: 'nl_mon', nombre: 'Montemorelos', poblacion: 67428, coordenadas: [25.1872, -99.8261], precioBase: 320000000, datosCuriosos: ["🍊 Capital Naranjera de México, líder indiscutible de exportación citrícola.", "Monumental edificio esculpido de Don José María Morelos y Pavón.", "🩺 Sede de una prestigiosa universidad médica y un sistema de salud del sureste."] },
-  'nl_all': { id: 'nl_all', nombre: 'Allende', poblacion: 35289, coordenadas: [25.2803, -100.0219], precioBase: 400000000, datosCuriosos: ["🚛 Posee una de las flotas de transporte de carga terrestre más grandes.", "Cruza el cristalino Río Ramos, paraje ecoturístico protegido.", "🐝 Reconocido internacionalmente por su alta calidad en la producción apícola."] },
-  'nl_gt': { id: 'nl_gt', nombre: 'General Terán', poblacion: 14109, coordenadas: [25.2603, -99.6147], precioBase: 15000000, datosCuriosos: ["🎵 Cuna de la música norteña tradicional por Los Alegres de Terán.", "🎈 Famoso por su festival anual de globos aerostáticos.", "🏛️ Nombrado en honor al militar insurgente Manuel Mier y Terán."] },
+  'nl_mon': { id: 'nl_mon', nombre: 'Montemorelos', poblacion: 67428, coordenadas: [25.1872, -99.8261], precioBase: 320000000, datosCuriosos: ["🍊 Capital Naranjera de México, líder indiscutible de exportación citrícola.", "🏛️ Monumental edificio esculpido de Don José María Morelos y Pavón.", "🩺 Sede de una prestigiosa universidad médica y un sistema de salud del sureste."] },
+  'nl_all': { id: 'nl_all', nombre: 'Allende', poblacion: 35289, coordenadas: [25.2803, -100.0219], precioBase: 400000000, datosCuriosos: ["🚛 Posee una de las flotas de transporte de carga terrestre más grandes.", "🏞️ Cruza el cristalino Río Ramos, paraje ecoturístico protegido.", "🐝 Reconocido internacionalmente por su alta calidad en la producción apícola."] },
+  'nl_gt': { id: 'nl_gt', nombre: 'General Terán', poblacion: 14109, coordenadas: [25.2603, -99.6147], precioBase: 150000000, datosCuriosos: ["🎵 Cuna de la música norteña tradicional por Los Alegres de Terán.", "🎈 Famoso por su festival anual de globos aerostáticos.", "🏛️ Nombrado en honor al militar insurgente Manuel Mier y Terán."] },
   'nl_lin': { id: 'nl_lin', nombre: 'Linares', poblacion: 84666, coordenadas: [24.8583, -99.5656], precioBase: 600000000, datosCuriosos: ["🍬 Famoso mundialmente por sus dulces artesanales llamados 'Glorias'.", "🎻 Tierra de la Tambora y el Clarinete, expresiones musicales típicas.", "🏰 Resguarda el Palacio Municipal y la Catedral de San Felipe Apóstol."] },
-  'nl_hua': { id: 'nl_hua', nombre: 'Hualahuises', poblacion: 7025, coordenadas: [24.9311, -99.6311], precioBase: 95000000, datosCuriosos: ["🪘 Famoso por sus talleres dedicados a la fabricación de guantes de béisbol.", "Enclavado geográficamente de manera interna en el territorio de Linares.", "🌉 Cuenta con puentes colgantes tradicionales sobre el Río Hualahuises."] },
+  'nl_hua': { id: 'nl_hua', nombre: 'Hualahuises', poblacion: 7025, coordenadas: [24.9311, -99.6311], precioBase: 95000000, datosCuriosos: ["🪘 Famoso por sus talleres dedicados a la fabricación de guantes de béisbol.", "🏡 Enclavado geográficamente de manera interna en el territorio de Linares.", "🌉 Cuenta con puentes colgantes tradicionales sobre el Río Hualahuises."] },
   'nl_gal': { id: 'nl_gal', nombre: 'Galeana', poblacion: 40948, coordenadas: [24.8258, -100.0717], precioBase: 250000000, datosCuriosos: ["⛰️ El municipio con mayor extensión territorial de todo el estado.", "🕳️ Cuenta con el Pozo del Gavilán, un cenote misterioso en la sierra.", "🥔 Principal productor de papa de alta calidad en el norte del país."] },
   'nl_da': { id: 'nl_da', nombre: 'Doctor Arroyo', poblacion: 35445, coordenadas: [23.6731, -100.1794], precioBase: 180000000, datosCuriosos: ["🌵 Ubicado en la región del semidesierto del extremo sur neolonés.", "🏛️ Fundado en memoria del Doctor José Francisco Arroyo.", "🧶 Tradición de tejidos artesanales de ixtle extraídos de la lechuguilla."] },
   'nl_ara': { id: 'nl_ara', nombre: 'Aramberri', poblacion: 14992, coordenadas: [24.0983, -99.8222], precioBase: 120000000, datosCuriosos: ["🦖 Famoso por el descubrimiento fósil del 'Monstruo de Aramberri'.", "🥑 Productor serrano de aguacate criollo de excelente sabor.", "🌊 Cuenta con nacimientos de agua cristalina entre desfiladeros."] },
@@ -112,7 +109,7 @@ const BASE_MUNICIPIOS_DATA: Record<string, Omit<Municipio, 'desbloqueado' | 'niv
   'nl_ana': { id: 'nl_ana', nombre: 'Anáhuac', poblacion: 18094, coordenadas: [27.2431, -100.1311], precioBase: 290000000, datosCuriosos: ["🇲🇽 Único municipio que comparte frontera internacional con EE. UU.", "🚢 Aloja el Puerto Fronterizo Colombia de alta eficiencia.", "🌊 Alimentado por la Presa Don Martín para riego algodonero."] },
   'nl_lam': { id: 'nl_lam', nombre: 'Lampazos de Naranjo', poblacion: 5351, coordenadas: [27.0225, -100.5117], precioBase: 110000000, datosCuriosos: ["⚔️ Conocida históricamente como la 'Cuna de Héroes' revolucionarios.", "🪵 Aloja el icónico paraje Ojo de Agua rodeado de sabinos milenarios.", "🤠 Tierra ganadera de exportación de alta calidad genética."] },
   'nl_bus': { id: 'nl_bus', nombre: 'Bustamante', poblacion: 3977, coordenadas: [26.5336, -100.5056], precioBase: 150000000, datosCuriosos: ["🥖 Pueblo Mágico célebre por su pan tradicional en hornos de adobe.", "🎒 Custodia las Grutas de Palma, sistema subterráneo monumental.", "🌴 Arquitectura heredada de los colonos tlaxcaltecas del siglo XVII."] },
-  'nl_sv': { id: 'nl_sv', nombre: 'Salinas Victoria', poblacion: 86766, coordenadas: [25.9644, -100.2922], precioBase: 310000000, datosCuriosos: ["🏭 Sede de un colosal clúster industrial logístico asiático.", "Nombrado en honor a las salinas históricas y al presidente Victoria.", "🥩 Famoso por su producción tradicional de machacado de res."] },
+  'nl_sv': { id: 'nl_sv', nombre: 'Salinas Victoria', poblacion: 86766, coordenadas: [25.9644, -100.2922], precioBase: 310000000, datosCuriosos: ["🏭 Sede de un colosal clúster industrial logístico asiático.", "📝 Nombrado en honor a las salinas históricas y al presidente Victoria.", "🥩 Famoso por su producción tradicional de machacado de res."] },
   'nl_sh': { id: 'nl_sh', nombre: 'Sabinas Hidalgo', poblacion: 34709, coordenadas: [26.5005, -100.1772], precioBase: 280000000, datosCuriosos: ["🌳 Alberga el Parque La Turbina, paraje de manantiales al norte.", "🧵 Capital textil histórica en la confección de vestidos del siglo XX.", "🍖 Famoso por su gastronomía basada en cabrito al pastor."] },
   'nl_chi': { id: 'nl_chi', nombre: 'China', poblacion: 10860, coordenadas: [25.7011, -99.2372], precioBase: 260000000, datosCuriosos: ["🌊 Resguarda la Presa El Cuchillo, el embalse que surte a Monterrey.", "🤠 Tierra vaquera con una de las identidades ganaderas más fuertes.", "📜 Fundada bajo el nombre de San Felipe de Jesús de China."] },
   'nl_gb': { id: 'nl_gb', nombre: 'General Bravo', poblacion: 5506, coordenadas: [25.7981, -99.1764], precioBase: 120000000, datosCuriosos: ["🦅 Zona llanera de matorral bajo ideal para la observación de fauna.", "🛣️ Punto de control intermedio estratégico en la ruta a Reynosa.", "🏛️ Nombrado en honor al general insurgente Nicolás Bravo."] },
@@ -139,7 +136,6 @@ const BASE_MUNICIPIOS_DATA: Record<string, Omit<Municipio, 'desbloqueado' | 'niv
   'nl_gtv': { id: 'nl_gtv', nombre: 'General Treviño', poblacion: 1808, coordenadas: [26.2225, -99.4811], precioBase: 46000000, datosCuriosos: ["📜 Antiguamente llamado rancho 'El Puntiagudo' por sus lomas.", "🏛️ Elevado a municipio en 1868 en honor al general Jerónimo Treviño.", "🤠 Comunidad pacífica dedicada a la engorda de ganado bovino."] }
 };
 
-// Generar municipios iniciales por defecto (evita fallas de hidratación estática)
 const generarMunicipiosEstaticos = (): Record<string, Municipio> => {
   const result: Record<string, Municipio> = {};
   Object.keys(BASE_MUNICIPIOS_DATA).forEach((key) => {
@@ -153,20 +149,20 @@ const generarMunicipiosEstaticos = (): Record<string, Municipio> => {
 };
 
 export const useGameStore = create<GameState>()((set, get) => ({
-  dinero: 100000000, // Tesoro federal inicial balanceado
+  dinero: 300000000, // Tesoro estatal inicial acelerado x2 (300M)
   tema: 'dark',
-  llavesDeLaCiudad: 3, // Empezamos con exactamente 3 llaves de la ciudad
+  llavesDeLaCiudad: 3, 
   currentViewFocus: 'municipio',
   isHudCollapsed: false,
   quizActivo: null,
-  ultimosNodosActivados: ['nl_mty'], // Historial inicializado con la capital
+  ultimosNodosActivados: ['nl_mty'], 
   municipios: generarMunicipiosEstaticos(),
   conexiones: [],
   alertas: [],
 
-  // Método unificado para inicializar de forma segura en cliente
-  inicializarJuegoNuevo: () => set(() => {
+  inicializarJuegoNuevo: () => {
     const ids = Object.keys(BASE_MUNICIPIOS_DATA);
+    // Elegimos un nodo aleatorio para comenzar como recomendación
     const idRandom = ids[Math.floor(Math.random() * ids.length)] || 'nl_mty';
 
     const nuevosMunicipios: Record<string, Municipio> = {};
@@ -183,20 +179,22 @@ export const useGameStore = create<GameState>()((set, get) => ({
       id: crypto.randomUUID(),
       tipo: 'unlock',
       icono: '⭐',
-      mensaje: `Recomendación Inicial: ${BASE_MUNICIPIOS_DATA[idRandom]!.nombre}`,
-      microcopy: `Exploración aleatoria establecida. Tienes 3 Llaves para desbloquear la frontera comercial.`
+      mensaje: `Sede Inicial: ${BASE_MUNICIPIOS_DATA[idRandom]!.nombre}`,
+      microcopy: `Exploración aleatoria recomendada. ¡Se te concedieron 3 llaves de inicio!`
     };
 
-    return {
-      dinero: 150000000, // Capital semilla acelerado
-      llavesDeLaCiudad: 3, // Siempre 3 llaves en inventario al inicio
+    set({
+      dinero: 300000000, 
+      llavesDeLaCiudad: 3, 
       municipios: nuevosMunicipios,
       conexiones: [],
       alertas: [primeraAlerta],
-      ultimosNodosActivados: [idRandom], // El primer nodo del historial es el inicial
+      ultimosNodosActivados: [idRandom], 
       quizActivo: null
-    };
-  }),
+    });
+
+    return idRandom; // Devuelve el id para centrar y hacer zoom en el mapa
+  },
 
   conmutarTema: () => set((state) => {
     const nuevoTema = state.tema === 'dark' ? 'light' : 'dark';
@@ -222,11 +220,9 @@ export const useGameStore = create<GameState>()((set, get) => ({
     let llavesExtra = state.llavesDeLaCiudad;
     let nuevasAlertas = [...state.alertas];
 
-    // FIFO para historial de los últimos 5 activados
+    // Mantener historial FIFO de los últimos 5
     let nuevoHistorial = [...state.ultimosNodosActivados];
-    if (nodo.nivelActual === 0) {
-      nuevoHistorial = [id, ...nuevoHistorial.filter((x) => x !== id)].slice(0, 5);
-    }
+    nuevoHistorial = [id, ...nuevoHistorial.filter((x) => x !== id)].slice(0, 5);
 
     if (nuevoNivel === 10) {
       llavesExtra += 1;
@@ -234,19 +230,19 @@ export const useGameStore = create<GameState>()((set, get) => ({
         id: crypto.randomUUID(),
         tipo: 'max_level',
         icono: '👑',
-        mensaje: `¡${nodo.nombre} Desarrollado!`,
-        microcopy: `Has ganado 1 Llave de la Ciudad por completar la mega-infraestructura.`
+        mensaje: `¡${nodo.nombre} al Máximo!`,
+        microcopy: `Ganaste 1 Llave extra por completar la súper infraestructura estatal.`
       };
-      nuevasAlertas = agregarAlertaUnica(nuevasAlertas, alertaMax);
+      nuevasAlertas = agregarAlertaUnica(alertaMax);
     } else {
       const alertaNivel: GameAlert = {
         id: crypto.randomUUID(),
         tipo: 'success',
         icono: '📈',
-        mensaje: `${nodo.nombre} Ascendió`,
-        microcopy: `Ahora genera mayor recaudación económica pasiva.`
+        mensaje: `${nodo.nombre} Ascendió a Lvl ${nuevoNivel}`,
+        microcopy: `Tu recaudación pasiva en la región aumentó significativamente.`
       };
-      nuevasAlertas = agregarAlertaUnica(nuevasAlertas, alertaNivel);
+      nuevasAlertas = agregarAlertaUnica(alertaNivel);
     }
 
     return {
@@ -264,8 +260,9 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const destino = state.municipios[hastaId];
     if (!origen || !destino || !origen.desbloqueado || !destino.desbloqueado) return;
 
+    // Cálculo dinámico entre los nodos activos involucrados
     const dist = calcularDistanciaKm(origen.coordenadas, destino.coordenadas);
-    const costoCarretera = Math.floor((150 + (dist * 40)) * 1000000); // 50% de descuento en carreteras para juego fluido
+    const costoCarretera = Math.floor((150 + (dist * 40)) * 1000000); 
 
     if (state.dinero < costoCarretera) return;
 
@@ -280,15 +277,15 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const alertaConexion: GameAlert = {
       id: crypto.randomUUID(),
       tipo: 'build',
-      icono: '🚀',
+      icono: '🛣️',
       mensaje: `Eje Vial Conectado`,
-      microcopy: `Red expandida entre ${origen.nombre} y ${destino.nombre} (${formatearDinero(costoCarretera)}).`
+      microcopy: `Nueva autopista de ${origen.nombre} a ${destino.nombre} (${formatearDinero(costoCarretera)}).`
     };
 
     set((state) => ({
       dinero: state.dinero - costoCarretera,
       conexiones: [...state.conexiones, nuevaConexion],
-      alertas: agregarAlertaUnica(state.alertas, alertaConexion)
+      alertas: agregarAlertaUnica(alertaConexion)
     }));
   },
 
@@ -296,20 +293,20 @@ export const useGameStore = create<GameState>()((set, get) => ({
     const nodo = state.municipios[id];
     if (!nodo || nodo.desbloqueado || state.llavesDeLaCiudad <= 0) return {};
 
-    // FIFO para historial de últimos 5 al activarse con llaves
+    // FIFO para historial al activarse
     const nuevoHistorial = [id, ...state.ultimosNodosActivados.filter((x) => x !== id)].slice(0, 5);
 
     const alertaDesbloqueo: GameAlert = {
       id: crypto.randomUUID(),
       tipo: 'unlock',
-      icono: '🗺️',
-      mensaje: `${nodo.nombre} Habilitado`,
-      microcopy: "La soberanía comercial se expande a un nuevo nodo estratégico."
+      icono: '🔑',
+      mensaje: `${nodo.nombre} Desbloqueado`,
+      microcopy: "Expandiste con éxito las llaves de la ciudad a este municipio estratégico."
     };
 
     return {
       llavesDeLaCiudad: state.llavesDeLaCiudad - 1,
-      alertas: agregarAlertaUnica(state.alertas, alertaDesbloqueo),
+      alertas: agregarAlertaUnica(alertaDesbloqueo),
       ultimosNodosActivados: nuevoHistorial,
       municipios: { ...state.municipios, [id]: { ...nodo, desbloqueado: true, nivelActual: 1 } }
     };
@@ -320,7 +317,7 @@ export const useGameStore = create<GameState>()((set, get) => ({
     if (idx === -1) return {};
     const conexion = state.conexiones[idx]!;
 
-    const costo = conexion.costoConstruccion * 0.15; // Rebajado a 15% para compras más intuitivas
+    const costo = conexion.costoConstruccion * 0.15; 
     if (state.dinero < costo || conexion.carriles >= 6) return {};
 
     const copias = [...state.conexiones];
@@ -330,20 +327,20 @@ export const useGameStore = create<GameState>()((set, get) => ({
       id: crypto.randomUUID(),
       tipo: 'build',
       icono: '🛣️',
-      mensaje: `Infraestructura Ampliada`,
-      microcopy: `Autopista mejorada a ${conexion.carriles + 1} carriles para acelerar recaudación pasiva.`
+      mensaje: `Autopista Mejorada`,
+      microcopy: `Ampliada a ${conexion.carriles + 1} carriles. Multiplicador de comercio regional sube a +80%.`
     };
 
     return {
       dinero: state.dinero - costo,
       conexiones: copias,
-      alertas: agregarAlertaUnica(state.alertas, alertaMejora)
+      alertas: agregarAlertaUnica(alertaMejora)
     };
   }),
 
   lanzarQuizPregunta: () => {
     const state = get();
-    // Filtramos usando ÚNICAMENTE el historial de los últimos 5 nodos activados
+    // Filtrar elegibles usando solo el historial FIFO de últimos 5 activos
     const nodosElegibles = state.ultimosNodosActivados.filter(id => {
       const m = state.municipios[id];
       return m && m.nivelActual > 0;
@@ -351,35 +348,35 @@ export const useGameStore = create<GameState>()((set, get) => ({
 
     if (nodosElegibles.length === 0) return;
 
-    // Tomamos uno al azar del historial caliente de los últimos 5
     const idRandom = nodosElegibles[Math.floor(Math.random() * nodosElegibles.length)]!;
     const ciudadRandom = state.municipios[idRandom]!;
     const datoRandom = ciudadRandom.datosCuriosos[Math.floor(Math.random() * ciudadRandom.datosCuriosos.length)]!;
 
-    // Recompensas masivas de quiz: 2.0x el costo del municipio bloqueado más barato del mapa global
+    // Recompensa incrementada a 8.0x (4 veces la original de 2.0x)
     const proximasCiudades = Object.values(state.municipios).filter(m => !m.desbloqueado);
     const ciudadReferencia = proximasCiudades.length > 0
       ? proximasCiudades.reduce((prev, curr) => prev.precioBase < curr.precioBase ? prev : curr)
       : { precioBase: 500000000 };
 
-    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 2.0); // 200% de subsidio federal para acelerar juego
+    const recompensaCalculada = Math.floor(ciudadReferencia.precioBase * 8.0); 
 
     const distractores = Object.values(state.municipios)
       .filter(m => m.id !== ciudadRandom.id)
       .map(m => m.nombre);
 
-    const opcionA = distractores[0] || "San Nicolás";
-    const opcionB = distractores[1] || "Apodaca";
+    const opcionA = distractores[0] || "San Pedro Garza";
+    const opcionB = distractores[1] || "Allende";
 
     const opcionesMezcladas = [ciudadRandom.nombre, opcionA, opcionB].sort(() => Math.random() - 0.5);
     const indexCorrecto = opcionesMezcladas.indexOf(ciudadRandom.nombre);
 
     set({
       quizActivo: {
-        pregunta: `¿A qué municipio de Nuevo León (recientemente activado) pertenece la siguiente trivia?\n\n"${datoRandom}"`,
+        pregunta: `¿A qué municipio de tu historial activo pertenece este dato curioso?\n\n"${datoRandom}"`,
         opciones: opcionesMezcladas,
         indexCorrecto,
-        recompensaEstimada: recompensaCalculada
+        recompensaEstimada: recompensaCalculada,
+        nodoAsociadoId: idRandom
       }
     });
   },
@@ -390,66 +387,68 @@ export const useGameStore = create<GameState>()((set, get) => ({
     if (!quiz) return { exito: false, mensaje: "", microcopy: "" };
 
     const esCorrecto = indexSeleccionado === quiz.indexCorrecto;
-    let nuevasAlertas = [...state.alertas];
 
     if (esCorrecto) {
       const alertaPremio: GameAlert = {
         id: crypto.randomUUID(),
         tipo: 'success',
         icono: '🧠',
-        mensaje: 'Premio Intelectual Otorgado',
-        microcopy: `¡Excelente! El consejo hacendario estatal te asignó fondos federales de estímulo.`
+        mensaje: '¡Trivia Superada con Éxito!',
+        microcopy: `Recibiste un subsidio hacendario masivo de ${formatearDinero(quiz.recompensaEstimada)}.`
       };
 
       set((state) => ({
         dinero: state.dinero + quiz.recompensaEstimada,
-        alertas: agregarAlertaUnica(nuevasAlertas, alertaPremio)
+        alertas: agregarAlertaUnica(alertaPremio)
       }));
 
       return {
         exito: true,
         mensaje: "¡Respuesta Correcta!",
-        microcopy: `Felicidades, ganaste un estímulo financiero masivo de ${formatearDinero(quiz.recompensaEstimada)}.`
+        microcopy: `Ganaste ${formatearDinero(quiz.recompensaEstimada)} en fondos estatales.`
       };
     } else {
+      // RESPUESTA INCORRECTA: Se desaloja este nodo del historial FIFO
+      const nuevoHistorial = state.ultimosNodosActivados.filter(id => id !== quiz.nodoAsociadoId);
+
       const alertaReprobado: GameAlert = {
         id: crypto.randomUUID(),
         tipo: 'unlock',
         icono: '❌',
-        mensaje: 'Auditoría Administrativa Reprobada',
-        microcopy: 'Sigue repasando las trivias geográficas de tus municipios activos.'
+        mensaje: 'Estímulo Cancelado por Error',
+        microcopy: `${state.municipios[quiz.nodoAsociadoId]?.nombre || 'El nodo'} fue desalojado del historial de trivias.`
       };
 
       set((state) => ({
-        alertas: agregarAlertaUnica(nuevasAlertas, alertaReprobado)
+        alertas: agregarAlertaUnica(alertaReprobado),
+        ultimosNodosActivados: nuevoHistorial
       }));
 
       return {
         exito: false,
         mensaje: "Respuesta Incorrecta",
-        microcopy: "El consejo federal retuvo los fondos para el próximo examen."
+        microcopy: "El municipio ha sido removido del historial activo hasta que interactúes de nuevo con él."
       };
     }
   },
 
   cerrarQuiz: () => set({ quizActivo: null }),
 
-  // Game Loop pasivo acelerado de alta ganancia
   procesarSegundoJuego: () => set((state) => {
     let ingresosTotales = 0;
     Object.values(state.municipios).forEach((m) => {
       if (m.desbloqueado && m.nivelActual > 0) {
-        // Fórmula de producción de dinero acelerada basada en población y nivel
-        const ingresoBaseNodo = m.poblacion * 0.45 * m.nivelActual; // Incrementado a 0.45x para velocidad
+        // Multiplicador de población duplicado a 0.90 (antes 0.45) para jugar x2 más rápido
+        const ingresoBaseNodo = m.poblacion * 0.90 * m.nivelActual; 
 
-        // Filtramos autopistas que toquen este nodo
+        // Filtrar puentes que tocan este nodo
         const puentesConectados = state.conexiones.filter(
           (c) => c.desde === m.id || c.hasta === m.id
         );
 
-        // Multiplicador del canal de autopista: ¡un masivo +40% de PIB extra por cada carril construido!
+        // Bonificación de autopista incrementada a +80% por carril (antes 40%)
         const multiplicadorPuentes = 1 + puentesConectados.reduce(
-          (acc, curr) => acc + (curr.carriles * 0.40),
+          (acc, curr) => acc + (curr.carriles * 0.80),
           0
         );
 

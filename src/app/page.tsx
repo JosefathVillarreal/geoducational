@@ -9,7 +9,6 @@ import { useGameStore, calcularDistanciaKm, formatearDinero } from './store/useG
 import NodeModal from './components/NodeModal';
 import RoadModal from './components/RoadModal';
 import QuizCard from './components/QuizCard';
-import { AlertasContainer } from './components/AlertasContainer';
 import { Sun, Moon, ChevronDown, ChevronUp, Wallet, Map, Landmark, Globe, Key } from 'lucide-react';
 
 const GameMap = dynamic(() => import('./components/GameMap'), {
@@ -43,9 +42,12 @@ export default function Home() {
   const [state, send] = useMachine(gameMachine);
 
   useEffect(() => {
-    // Inicializa de manera segura el juego en el cliente para evitar Hydration Mismatch
-    inicializarJuegoNuevo();
-  }, [inicializarJuegoNuevo]);
+    // Inicializa el juego y enfoca la cámara satelital en el nodo aleatorio de inicio
+    const startingNodeId = inicializarJuegoNuevo();
+    if (startingNodeId) {
+      send({ type: 'SELECT_NODE', id: startingNodeId });
+    }
+  }, [inicializarJuegoNuevo, send]);
 
   useEffect(() => {
     if (alertas.length > 0) {
@@ -65,7 +67,7 @@ export default function Home() {
   }, [procesarSegundoJuego]);
 
   useEffect(() => {
-    // Dispara preguntas desafiantes cada 60 segundos del historial de nodos activos
+    // Dispara preguntas desafiantes cada 60 segundos del historial de últimos 5 activos
     const cronometroQuiz = setInterval(() => {
       lanzarQuizPregunta();
     }, 60000);
@@ -91,7 +93,7 @@ export default function Home() {
       
       {/* 🔔 NOTIFICACIONES CON EFECTO CELEBRACIÓN DE NIVEL MÁXIMO (Cromática Oro de un solo elemento sin duplicados) */}
       <div className="absolute top-4 right-4 z-[3000] flex flex-col gap-2 pointer-events-none max-w-sm w-full px-4">
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {alertas.map((alerta) => {
             const esMax = alerta.tipo === 'max_level';
             return (
@@ -125,7 +127,6 @@ export default function Home() {
         </AnimatePresence>
       </div>
 
-      {}
       {state.matches('modoConstruccion') && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-[2000] w-[90%] md:w-auto bg-amber-500 text-slate-950 font-black px-4 py-2.5 rounded-xl text-[11px] uppercase tracking-wider text-center shadow-2xl flex items-center justify-between gap-3">
           <span>🚧 Selecciona la ciudad de destino para el puente conector</span>
@@ -174,7 +175,6 @@ export default function Home() {
           </div>
         </div>
 
-        {}
         <div className="mt-2 flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700 justify-around items-center">
           <button onClick={() => setViewFocus('municipio')} className={`w-full py-1 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition ${currentViewFocus === 'municipio' ? 'bg-white dark:bg-slate-950 text-sky-500 shadow-sm' : 'text-slate-400'}`}><Map size={11} /> Región</button>
           <button onClick={() => setViewFocus('estado')} className={`w-full py-1 rounded-md text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition ${currentViewFocus === 'estado' ? 'bg-white dark:bg-slate-950 text-emerald-500 shadow-sm' : 'text-slate-400'}`}><Landmark size={11} /> Estado</button>
@@ -193,6 +193,7 @@ export default function Home() {
                     ? `Lvl ${m.nivelActual}` 
                     : `💸 ${formatearDinero(m.precioBase)}`;
 
+              // El cálculo de puente se efectúa basado en los nodos activos involucrados
               if (nodoOrigenObra && nodoOrigenObra.id !== m.id && m.desbloqueado) {
                 const dist = calcularDistanciaKm(nodoOrigenObra.coordenadas, m.coordenadas);
                 tagInfo = `📏 ${dist.toFixed(0)}km ➜ ${formatearDinero((150 + dist * 40) * 1000000)}`;
@@ -221,7 +222,6 @@ export default function Home() {
         )}
       </div>
 
-      {}
       <div 
         className="w-full h-full" 
         onClick={(e) => { 
@@ -251,7 +251,6 @@ export default function Home() {
       />
       
       <QuizCard />
-      <AlertasContainer />
     </main>
   );
 }
